@@ -59,6 +59,12 @@ npm start
 - Estilização: Emotion
 - Gráficos: Recharts
 
+## Autores
+- **Anderson Felipe Silva Aires** - [LinkedIn](https://www.linkedin.com/in/anderson-aires-b23720230/)  
+- **Joberth Emanoel da Conceição Mateo Castro** - [GitHub](https://github.com/JoberthCastro) | [LinkedIn](https://www.linkedin.com/in/joberth-castro-013840252)  
+- **Maria Clara Cutrim Nunes Costa** - [LinkedIn](https://www.linkedin.com/in/maria-clara-cutrim-nunes-costa-55b7a8248/)  
+- **Wesley Silva Gomes** - [GitHub](https://github.com/WesDevss) | [LinkedIn](https://www.linkedin.com/in/wesley-silva-gomes-9bb195259/)  
+
 ## Contribuição
 
 Contribuições são bem-vindas! Por favor, abra uma issue para discutir mudanças ou melhorias. 
