@@ -1,11 +1,14 @@
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
+const { bcryptSaltRounds } = require('../config/env');
 
 async function createUser(req, res, next) {
   try {
     const { nome, email, senha } = req.body;
 
-    const user = await User.create({ nome, email, senha });
+    const passwordHash = await bcrypt.hash(String(senha), bcryptSaltRounds);
+    const user = await User.create({ nome, email, senha: passwordHash });
 
     const safeUser = user.toObject();
     delete safeUser.senha;
@@ -37,7 +40,9 @@ async function updateUser(req, res, next) {
     const update = {};
     if (typeof nome !== 'undefined') update.nome = nome;
     if (typeof email !== 'undefined') update.email = email;
-    if (typeof senha !== 'undefined') update.senha = senha;
+    if (typeof senha !== 'undefined') {
+      update.senha = await bcrypt.hash(String(senha), bcryptSaltRounds);
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       id,
