@@ -1,6 +1,10 @@
 const axios = require('axios');
+const { buildEsgFromAirQuality, buildSustainabilityScore } = require('../utils/esgFromAirQuality');
 
 const OPENAQ_BASE_URL = 'https://api.openaq.org/v3';
+const MONTH_LABELS_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const historyCache = new Map();
+const HISTORY_CACHE_TTL_MS = 5 * 60 * 1000;
 
 /** Coordenadas aproximadas das cidades suportadas (busca geoespacial OpenAQ v3). */
 const CITY_COORDINATES = {
@@ -341,19 +345,8 @@ function convertOpenAQToESG(openAQData, locationInfo) {
     return getSimulatedData(locationInfo?.locality || locationInfo?.name || 'Desconhecido');
   }
 
-  const aqi = measurements.aqi;
-  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-  const co2Emissions = parseFloat(clamp((aqi * 14) + 180, 150, 1200).toFixed(1));
-  const energyConsumption = parseFloat(clamp((aqi * 42) + 1100, 900, 5200).toFixed(1));
-  const waterConsumption = parseFloat(clamp((aqi * 1.1) + 70, 50, 260).toFixed(1));
-  const wasteGenerated = parseFloat(clamp((aqi * 0.35) + 20, 15, 120).toFixed(1));
-  const renewableEnergy = parseFloat(clamp(60 - (aqi * 0.4), 8, 60).toFixed(1));
-  const recyclingRate = parseFloat(clamp(55 - (aqi * 0.28), 12, 55).toFixed(1));
-
-  const sustainabilityScore = parseFloat(clamp(
-    100 - (aqi * 0.45) + (renewableEnergy * 0.35) + (recyclingRate * 0.25) - (co2Emissions * 0.015),
-    0, 100
-  ).toFixed(1));
+  const esgMetrics = buildEsgFromAirQuality(measurements);
+  const sustainabilityScore = buildSustainabilityScore(measurements, esgMetrics);
 
   return [
     {
@@ -361,14 +354,7 @@ function convertOpenAQToESG(openAQData, locationInfo) {
       city: locationInfo?.locality || locationInfo?.name || 'Desconhecido',
       country: locationInfo?.country?.code || 'BR',
       airQuality: measurements,
-      esgMetrics: {
-        co2Emissions,
-        energyConsumption,
-        waterConsumption,
-        wasteGenerated,
-        renewableEnergy,
-        recyclingRate
-      },
+      esgMetrics,
       sustainabilityScore: Math.min(100, Math.max(0, sustainabilityScore)),
       timestamp: latestReadingAt || new Date(),
       source: `OpenAQ API v3 (${parsedCount} poluentes em tempo real)`,
@@ -431,6 +417,170 @@ function getSimulatedData(location) {
   ];
 }
 
+function yearMonthKeyFromPeriod(period) {
+  const raw = period?.datetimeFrom?.utc || period?.datetimeFrom?.local;
+  if (!raw) {
+    return null;
+  }
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${date.getFullYear()}-${month}`;
+}
+
+function monthLabelFromYearMonth(yearMonth) {
+  const monthIndex = Number(yearMonth.split('-')[1]) - 1;
+  return MONTH_LABELS_PT[monthIndex] || yearMonth;
+}
+
+function emptyAirQuality() {
+  return { pm25: null, pm10: null, no2: null, o3: null, co: null, so2: null, aqi: 0 };
+}
+
+async function fetchSensorMonthlyRows(sensorId, headers) {
+  const rows = [];
+  let page = 1;
+  let totalPages = 1;
+
+  while (page <= totalPages && page <= 15) {
+    const response = await axios.get(`${OPENAQ_BASE_URL}/sensors/${sensorId}/days/monthly`, {
+      headers,
+      params: { limit: 100, page },
+    });
+
+    const meta = response.data?.meta || {};
+    const found = Number(meta.found || 0);
+    const limit = Number(meta.limit || 100);
+    totalPages = Math.max(1, Math.ceil(found / limit));
+
+    rows.push(...(response.data?.results || []));
+    page += 1;
+  }
+
+  return rows;
+}
+
+function mergeMonthlyRowsIntoMap(monthlyRows, targetMap) {
+  monthlyRows.forEach((row) => {
+    const yearMonth = yearMonthKeyFromPeriod(row.period);
+    const param = normalizeParameterName(row.parameter?.name);
+    const value = row.summary?.avg ?? row.value;
+
+    if (!yearMonth || !param || value == null) {
+      return;
+    }
+
+    if (!targetMap.has(yearMonth)) {
+      targetMap.set(yearMonth, emptyAirQuality());
+    }
+
+    applyMeasurement(targetMap.get(yearMonth), param, value);
+  });
+
+  targetMap.forEach((airQuality) => {
+    airQuality.aqi = computeAqi(airQuality);
+  });
+}
+
+function selectYearMonthKeys(availableKeys, preferYear) {
+  const sorted = [...availableKeys].sort();
+  const yearPrefix = `${preferYear}-`;
+  const preferred = sorted.filter((key) => key.startsWith(yearPrefix));
+
+  if (preferred.length >= 3) {
+    return preferred;
+  }
+
+  return sorted.slice(-6);
+}
+
+function buildRecordFromYearMonth(locationDetails, cityName, countryCode, yearMonth, airQuality) {
+  const esgMetrics = buildEsgFromAirQuality(airQuality);
+  const [year, month] = yearMonth.split('-').map(Number);
+  const pollutantCount = [
+    airQuality.pm25,
+    airQuality.pm10,
+    airQuality.no2,
+    airQuality.o3,
+    airQuality.co,
+    airQuality.so2,
+  ].filter((value) => value != null).length;
+
+  return {
+    location: locationDetails.name,
+    city: cityName,
+    country: countryCode,
+    month: monthLabelFromYearMonth(yearMonth),
+    yearMonth,
+    airQuality,
+    esgMetrics,
+    sustainabilityScore: buildSustainabilityScore(airQuality, esgMetrics),
+    source: `OpenAQ API v3 — média mensal (${pollutantCount} poluentes)`,
+    timestamp: new Date(year, month - 1, 15),
+  };
+}
+
+async function fetchCityHistoricalFromOpenAQ(city, country) {
+  const cacheKey = `${normalizeText(city)}:${String(country || 'BR').toUpperCase()}`;
+  const cached = historyCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < HISTORY_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
+  const OPENAQ_API_KEY = getOpenAQApiKey();
+  if (!OPENAQ_API_KEY) {
+    return null;
+  }
+
+  const headers = { 'X-API-Key': OPENAQ_API_KEY };
+  const matchedLocation = await resolveLocationForCity(city, country, headers);
+  if (!matchedLocation) {
+    return null;
+  }
+
+  const locationDetails = await enrichLocationDetails(matchedLocation, headers);
+  const sensors = locationDetails.sensors || [];
+
+  if (!sensors.length) {
+    return null;
+  }
+
+  const monthlyByYearMonth = new Map();
+
+  const sensorResults = await Promise.all(
+    sensors.map((sensor) => fetchSensorMonthlyRows(sensor.id, headers))
+  );
+
+  sensorResults.forEach((rows) => mergeMonthlyRowsIntoMap(rows, monthlyByYearMonth));
+
+  const availableKeys = [...monthlyByYearMonth.keys()];
+  if (!availableKeys.length) {
+    return null;
+  }
+
+  const preferYear = new Date().getFullYear();
+  const selectedKeys = selectYearMonthKeys(availableKeys, preferYear);
+
+  const series = selectedKeys.map((yearMonth) => buildRecordFromYearMonth(
+    locationDetails,
+    city,
+    locationDetails.country?.code || country || 'BR',
+    yearMonth,
+    monthlyByYearMonth.get(yearMonth)
+  ));
+
+  const payload = {
+    location: locationDetails,
+    series,
+    availableMonths: series.map((entry) => entry.month),
+  };
+
+  historyCache.set(cacheKey, { at: Date.now(), data: payload });
+  return payload;
+}
+
 function normalizeOpenAQData(measurements) {
   if (!measurements || !Array.isArray(measurements)) {
     return [];
@@ -472,6 +622,7 @@ function normalizeOpenAQData(measurements) {
 module.exports = {
   fetchAirQualityByLocation,
   fetchAirQualityByCity,
+  fetchCityHistoricalFromOpenAQ,
   normalizeOpenAQData,
   getSimulatedData,
   pickBestLocation,
@@ -479,4 +630,5 @@ module.exports = {
   sortLocationsByDistance,
   formatCoordinates,
   CITY_COORDINATES,
+  MONTH_LABELS_PT,
 };

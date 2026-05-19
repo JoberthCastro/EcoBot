@@ -18,13 +18,17 @@ export function buildExecutiveInsights({
   const aqi = Number(airQuality?.aqi || 0);
   const aqiInfo = getAqiLabel(aqi);
 
+  const isFromOpenAQ = !isSimulated && (airData?.source || '').toLowerCase().includes('openaq');
+
   insights.push({
     tone: isSimulated ? 'warning' : 'success',
     icon: isSimulated ? '⚠️' : '🛰️',
-    title: isSimulated ? 'Modo demonstração' : 'Dados em tempo real',
+    title: isSimulated ? 'Modo demonstração' : 'Dados OpenAQ',
     text: isSimulated
       ? 'Métricas estáveis para apresentação. Em produção, conectamos à OpenAQ v3 com API key.'
-      : `Qualidade do ar integrada via OpenAQ v3 para ${city}.`,
+      : isFromOpenAQ
+        ? `Médias mensais reais da OpenAQ v3 para ${city} (histórico por estação).`
+        : `Qualidade do ar integrada via OpenAQ v3 para ${city}.`,
   });
 
   if (score >= 80) {

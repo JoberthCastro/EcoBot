@@ -11,22 +11,44 @@ function FilterBar({ onFilterChange, defaultCity = 'São Paulo', defaultMonth = 
   useEffect(() => {
     let isMounted = true;
 
-    async function loadFilterOptions() {
-      const [citiesData, monthsData] = await Promise.all([getCities(), getMonths()]);
+    async function loadCities() {
+      const citiesData = await getCities();
       if (!isMounted) {
         return;
       }
-
       setCities(citiesData);
-      setMonths(monthsData);
     }
 
-    loadFilterOptions();
+    loadCities();
 
     return () => {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadMonthsForCity() {
+      const monthsData = await getMonths(selectedCity);
+      if (!isMounted) {
+        return;
+      }
+
+      setMonths(monthsData);
+      if (monthsData.length && !monthsData.includes(selectedMonth)) {
+        setSelectedMonth(monthsData[monthsData.length - 1]);
+      }
+    }
+
+    if (showMonthFilter && selectedCity) {
+      loadMonthsForCity();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCity, showMonthFilter]);
 
   useEffect(() => {
     if (onFilterChange) {

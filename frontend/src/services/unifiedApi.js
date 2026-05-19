@@ -5,8 +5,13 @@ async function getCities() {
   return response.data;
 }
 
-async function getMonths() {
-  const response = await apiClient.get('/unified/months');
+async function getMonths(city) {
+  const params = {};
+  if (city) {
+    params.city = city;
+  }
+
+  const response = await apiClient.get('/unified/months', { params });
   return response.data;
 }
 

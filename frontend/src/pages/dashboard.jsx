@@ -87,7 +87,8 @@ function Dashboard() {
 
   const score = airData?.sustainabilityScore || 72;
 
-  const isSimulated = (airData?.source || metricsData?.source || '').toLowerCase().includes('simulado');
+  const sourceText = (airData?.source || metricsData?.source || '').toLowerCase();
+  const isSimulated = sourceText.includes('simulado');
   const compareLabel = metricsData?.previousMonth
     ? `vs ${metricsData.previousMonth}:`
     : 'vs anterior:';
