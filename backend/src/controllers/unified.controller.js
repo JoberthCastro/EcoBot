@@ -120,12 +120,24 @@ async function getUnifiedData(req, res) {
   }
 }
 
+function calcReduction(previous, current) {
+  if (!previous) {
+    return 0;
+  }
+  return parseFloat((((previous - current) / previous) * 100).toFixed(1));
+}
+
 async function getUnifiedMetrics(req, res) {
   try {
-    const { city = 'São Paulo' } = req.query;
+    const { city = 'São Paulo', month = 'Jun' } = req.query;
 
     if (!supportedCities.some((entry) => entry.name === city)) {
       return res.status(400).json({ error: 'Cidade não encontrada' });
+    }
+
+    const monthIndex = monthOrder.indexOf(month);
+    if (monthIndex < 0) {
+      return res.status(400).json({ error: `Mês inválido. Disponíveis: ${monthOrder.join(', ')}` });
     }
 
     const snapshot = await getLiveCitySnapshot(city);
@@ -134,25 +146,36 @@ async function getUnifiedMetrics(req, res) {
     }
 
     const history = buildHistoricalSeriesFromSnapshot(snapshot);
-    const current = history[history.length - 1];
-    const previous = history[history.length - 2] || current;
+    const current = history[monthIndex];
+    const previous = history[monthIndex > 0 ? monthIndex - 1 : 0];
 
     const metrics = {
+      month,
+      previousMonth: monthIndex > 0 ? monthOrder[monthIndex - 1] : month,
+      source: snapshot.source,
       energyConsumption: {
         current: current.esgMetrics.energyConsumption,
         previous: previous.esgMetrics.energyConsumption,
-        reduction: parseFloat((((previous.esgMetrics.energyConsumption - current.esgMetrics.energyConsumption) / previous.esgMetrics.energyConsumption) * 100).toFixed(1))
+        reduction: calcReduction(previous.esgMetrics.energyConsumption, current.esgMetrics.energyConsumption),
       },
       digitalStorage: {
         current: parseFloat((current.esgMetrics.recyclingRate * 15).toFixed(1)),
         previous: parseFloat((previous.esgMetrics.recyclingRate * 15).toFixed(1)),
-        reduction: parseFloat((((previous.esgMetrics.recyclingRate - current.esgMetrics.recyclingRate) / previous.esgMetrics.recyclingRate) * 100).toFixed(1))
+        reduction: calcReduction(
+          previous.esgMetrics.recyclingRate * 15,
+          current.esgMetrics.recyclingRate * 15
+        ),
       },
       carbonEmissions: {
         current: current.esgMetrics.co2Emissions,
         previous: previous.esgMetrics.co2Emissions,
-        reduction: parseFloat((((previous.esgMetrics.co2Emissions - current.esgMetrics.co2Emissions) / previous.esgMetrics.co2Emissions) * 100).toFixed(1))
-      }
+        reduction: calcReduction(previous.esgMetrics.co2Emissions, current.esgMetrics.co2Emissions),
+      },
+      sustainabilityScore: {
+        current: current.sustainabilityScore,
+        previous: previous.sustainabilityScore,
+        reduction: calcReduction(previous.sustainabilityScore, current.sustainabilityScore),
+      },
     };
 
     res.json(metrics);

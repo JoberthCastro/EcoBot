@@ -20,8 +20,13 @@ async function getDataForCityAndMonth(city, month) {
   return response.data;
 }
 
-async function getMetricsForCity(city) {
-  const response = await apiClient.get('/unified/metrics', { params: { city } });
+async function getMetricsForCity(city, month) {
+  const params = { city };
+  if (month) {
+    params.month = month;
+  }
+
+  const response = await apiClient.get('/unified/metrics', { params });
   return response.data;
 }
 

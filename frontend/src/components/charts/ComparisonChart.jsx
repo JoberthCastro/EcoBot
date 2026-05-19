@@ -2,24 +2,24 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useApp } from '../../context/AppContext';
 
-function ComparisonChart({ data }) {
+function ComparisonChart({ data, previousMonthLabel = 'Anterior' }) {
   const { theme } = useApp();
   const isDark = theme === 'dark';
   const chartData = [
     {
       name: 'Energia (kWh)',
       Atual: data?.energyConsumption?.current || 1500,
-      Anterior: data?.energyConsumption?.previous || 1800,
+      [previousMonthLabel]: data?.energyConsumption?.previous || 1800,
     },
     {
       name: 'Armaz. Digital (GB)',
       Atual: data?.digitalStorage?.current || 500,
-      Anterior: data?.digitalStorage?.previous || 700,
+      [previousMonthLabel]: data?.digitalStorage?.previous || 700,
     },
     {
       name: 'CO2 (t)',
       Atual: data?.carbonEmissions?.current || 200,
-      Anterior: data?.carbonEmissions?.previous || 250,
+      [previousMonthLabel]: data?.carbonEmissions?.previous || 250,
     },
   ];
 
@@ -40,7 +40,7 @@ function ComparisonChart({ data }) {
             }}
           />
           <Legend wrapperStyle={{ fontSize: '12px', color: isDark ? '#9ca3af' : '#374151' }} />
-          <Bar dataKey="Anterior" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+          <Bar dataKey={previousMonthLabel} fill="#94a3b8" radius={[4, 4, 0, 0]} name={previousMonthLabel} />
           <Bar dataKey="Atual" fill="#22c55e" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>

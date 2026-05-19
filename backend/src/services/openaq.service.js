@@ -2,6 +2,14 @@ const axios = require('axios');
 
 const OPENAQ_BASE_URL = 'https://api.openaq.org/v3';
 
+/** Coordenadas aproximadas das cidades suportadas (busca geoespacial OpenAQ v3). */
+const CITY_COORDINATES = {
+  'sao paulo': { latitude: -23.5505, longitude: -46.6333 },
+  'rio de janeiro': { latitude: -22.9068, longitude: -43.1729 },
+  'belo horizonte': { latitude: -19.9167, longitude: -43.9345 },
+  curitiba: { latitude: -25.4284, longitude: -49.2733 },
+};
+
 function normalizeText(value) {
   return String(value || '')
     .normalize('NFD')
@@ -55,33 +63,90 @@ function getOpenAQApiKey() {
   return '';
 }
 
-async function fetchAirQualityByLocation(location) {
+function hashString(str) {
+  const normalized = normalizeText(str);
+  let hash = 0;
+  for (let i = 0; i < normalized.length; i += 1) {
+    hash = ((hash << 5) - hash) + normalized.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) || 1;
+}
+
+function seededValue(seed, index, min, max) {
+  const x = Math.sin(seed + index * 12.9898) * 43758.5453;
+  const rand = x - Math.floor(x);
+  return parseFloat((min + rand * (max - min)).toFixed(2));
+}
+
+async function fetchLocationsPage(headers, params) {
+  const response = await axios.get(`${OPENAQ_BASE_URL}/locations`, { headers, params });
+  return response.data.results || [];
+}
+
+async function resolveLocationForCity(city, country, headers) {
+  const normalizedCity = normalizeText(city);
+  const iso = String(country || 'BR').toUpperCase();
+  const coords = CITY_COORDINATES[normalizedCity];
+
+  if (coords) {
+    const nearbyLocations = await fetchLocationsPage(headers, {
+      coordinates: `${coords.latitude},${coords.longitude}`,
+      radius: 25000,
+      iso,
+      limit: 100,
+      order_by: 'distance',
+      sort_order: 'asc',
+    });
+
+    const nearbyMatch = pickBestLocation(nearbyLocations, city, country);
+    if (nearbyMatch) {
+      return nearbyMatch;
+    }
+  }
+
+  for (let page = 1; page <= 5; page += 1) {
+    const locations = await fetchLocationsPage(headers, {
+      iso,
+      limit: 1000,
+      page,
+    });
+
+    if (!locations.length) {
+      break;
+    }
+
+    const match = pickBestLocation(locations, city, country);
+    if (match) {
+      return match;
+    }
+
+    if (locations.length < 1000) {
+      break;
+    }
+  }
+
+  return null;
+}
+
+async function fetchAirQualityFromOpenAQ(query, country) {
   const OPENAQ_API_KEY = getOpenAQApiKey();
   if (!OPENAQ_API_KEY) {
     console.warn('[OpenAQ Service] API key não definida - usando dados simulados');
-    return getSimulatedData(location);
+    return getSimulatedData(query);
   }
 
   try {
     const headers = { 'X-API-Key': OPENAQ_API_KEY };
-
-    const locationsResponse = await axios.get(`${OPENAQ_BASE_URL}/locations`, {
-      headers,
-      params: {
-        limit: 1000
-      }
-    });
-
-    const locations = locationsResponse.data.results || [];
-    const matchedLocation = pickBestLocation(locations, location);
+    const matchedLocation = await resolveLocationForCity(query, country, headers);
 
     if (!matchedLocation) {
-      console.warn(`[OpenAQ Service] Localização "${location}" não encontrada - usando dados simulados`);
-      return getSimulatedData(location);
+      console.warn(`[OpenAQ Service] Cidade "${query}" não encontrada - usando dados simulados`);
+      return getSimulatedData(query);
     }
 
     const latestResponse = await axios.get(`${OPENAQ_BASE_URL}/locations/${matchedLocation.id}/latest`, {
-      headers
+      headers,
     });
 
     const latestData = latestResponse.data.results || [];
@@ -89,47 +154,16 @@ async function fetchAirQualityByLocation(location) {
   } catch (error) {
     console.error('[OpenAQ Service] Erro ao buscar dados:', error.message);
     console.warn('[OpenAQ Service] Usando dados simulados como fallback');
-    return getSimulatedData(location);
+    return getSimulatedData(query);
   }
 }
 
+async function fetchAirQualityByLocation(location) {
+  return fetchAirQualityFromOpenAQ(location, 'BR');
+}
+
 async function fetchAirQualityByCity(city, country) {
-  const OPENAQ_API_KEY = getOpenAQApiKey();
-  if (!OPENAQ_API_KEY) {
-    console.warn('[OpenAQ Service] API key não definida - usando dados simulados');
-    return getSimulatedData(city);
-  }
-
-  try {
-    const headers = { 'X-API-Key': OPENAQ_API_KEY };
-
-    const locationsResponse = await axios.get(`${OPENAQ_BASE_URL}/locations`, {
-      headers,
-      params: {
-        limit: 1000,
-        country: country || undefined
-      }
-    });
-
-    const locations = locationsResponse.data.results || [];
-    const matchedLocation = pickBestLocation(locations, city, country);
-
-    if (!matchedLocation) {
-      console.warn(`[OpenAQ Service] Cidade "${city}" não encontrada - usando dados simulados`);
-      return getSimulatedData(city);
-    }
-
-    const latestResponse = await axios.get(`${OPENAQ_BASE_URL}/locations/${matchedLocation.id}/latest`, {
-      headers
-    });
-
-    const latestData = latestResponse.data.results || [];
-    return convertOpenAQToESG(latestData, matchedLocation);
-  } catch (error) {
-    console.error('[OpenAQ Service] Erro ao buscar dados:', error.message);
-    console.warn('[OpenAQ Service] Usando dados simulados como fallback');
-    return getSimulatedData(city);
-  }
+  return fetchAirQualityFromOpenAQ(city, country);
 }
 
 function convertOpenAQToESG(openAQData, locationInfo) {
@@ -203,21 +237,23 @@ function convertOpenAQToESG(openAQData, locationInfo) {
 }
 
 function getSimulatedData(location) {
-  const pm25 = parseFloat((Math.random() * 50 + 10).toFixed(2));
-  const pm10 = parseFloat((Math.random() * 80 + 20).toFixed(2));
-  const no2 = parseFloat((Math.random() * 40 + 5).toFixed(2));
-  const o3 = parseFloat((Math.random() * 60 + 10).toFixed(2));
-  const co = parseFloat((Math.random() * 10 + 1).toFixed(2));
-  const so2 = parseFloat((Math.random() * 20 + 2).toFixed(2));
+  const seed = hashString(location);
+
+  const pm25 = seededValue(seed, 1, 10, 60);
+  const pm10 = seededValue(seed, 2, 20, 100);
+  const no2 = seededValue(seed, 3, 5, 45);
+  const o3 = seededValue(seed, 4, 10, 70);
+  const co = seededValue(seed, 5, 1, 11);
+  const so2 = seededValue(seed, 6, 2, 22);
 
   const aqi = Math.max(pm25, pm10, no2, o3, co, so2);
 
-  const co2Emissions = parseFloat((Math.random() * 1000 + 200).toFixed(2));
-  const energyConsumption = parseFloat((Math.random() * 5000 + 1000).toFixed(2));
-  const waterConsumption = parseFloat((Math.random() * 200 + 50).toFixed(2));
-  const wasteGenerated = parseFloat((Math.random() * 100 + 20).toFixed(2));
-  const renewableEnergy = parseFloat((Math.random() * 50 + 10).toFixed(2));
-  const recyclingRate = parseFloat((Math.random() * 40 + 20).toFixed(2));
+  const co2Emissions = seededValue(seed, 7, 200, 1200);
+  const energyConsumption = seededValue(seed, 8, 1000, 5200);
+  const waterConsumption = seededValue(seed, 9, 50, 250);
+  const wasteGenerated = seededValue(seed, 10, 20, 120);
+  const renewableEnergy = seededValue(seed, 11, 10, 55);
+  const recyclingRate = seededValue(seed, 12, 15, 50);
 
   const sustainabilityScore = parseFloat((
     100 - (aqi / 2) +
@@ -297,5 +333,8 @@ module.exports = {
   fetchAirQualityByLocation,
   fetchAirQualityByCity,
   normalizeOpenAQData,
-  getSimulatedData
+  getSimulatedData,
+  pickBestLocation,
+  resolveLocationForCity,
+  CITY_COORDINATES,
 };

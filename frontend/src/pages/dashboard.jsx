@@ -24,7 +24,7 @@ function Dashboard() {
       try {
         const [data, metrics, apiSuggestions] = await Promise.all([
           getDataForCityAndMonth(filters.city, filters.month),
-          getMetricsForCity(filters.city),
+          getMetricsForCity(filters.city, filters.month),
           getSuggestions()
         ]);
 
@@ -86,37 +86,52 @@ function Dashboard() {
 
   const score = airData?.sustainabilityScore || 72;
 
+  const isSimulated = (airData?.source || metricsData?.source || '').toLowerCase().includes('simulado');
+  const compareLabel = metricsData?.previousMonth
+    ? `vs ${metricsData.previousMonth}:`
+    : 'vs anterior:';
+
   const kpiList = [
     {
       label: 'Consumo de Energia',
       current: metricsData?.energyConsumption?.current ?? 1500,
       previous: metricsData?.energyConsumption?.previous ?? 1800,
       unit: 'kWh',
-      reduction: metricsData?.energyConsumption?.reduction ?? 16.7,
-      good: true,
+      reduction: metricsData?.energyConsumption?.reduction ?? 0,
+      lowerIsBetter: true,
     },
     {
       label: 'Armazenamento Digital',
       current: metricsData?.digitalStorage?.current ?? 500,
       previous: metricsData?.digitalStorage?.previous ?? 700,
       unit: 'GB',
-      reduction: metricsData?.digitalStorage?.reduction ?? 28.6,
-      good: true,
+      reduction: metricsData?.digitalStorage?.reduction ?? 0,
+      lowerIsBetter: true,
     },
     {
       label: 'Emissões CO2',
       current: metricsData?.carbonEmissions?.current ?? 200,
       previous: metricsData?.carbonEmissions?.previous ?? 250,
       unit: 't',
-      reduction: metricsData?.carbonEmissions?.reduction ?? 20,
-      good: true,
+      reduction: metricsData?.carbonEmissions?.reduction ?? 0,
+      lowerIsBetter: true,
     },
-  ];
+  ].map((kpi) => {
+    const isGood = kpi.lowerIsBetter ? kpi.reduction > 0 : kpi.reduction > 0;
+    const arrow = kpi.reduction >= 0 ? '▼' : '▲';
+    return { ...kpi, isGood, arrow };
+  });
 
   return (
     <Layout title="Dashboard">
       <div className="dashboard-container">
         <FilterBar onFilterChange={handleFilterChange} defaultCity={filters.city} defaultMonth={filters.month} />
+
+        {isSimulated && (
+          <div className="data-source-banner" role="status">
+            Dados simulados — configure OPENAQ_API_KEY na Vercel ou aguarde sincronização com a OpenAQ para esta cidade.
+          </div>
+        )}
 
         {/* KPI Cards */}
         <div className="kpi-row">
@@ -124,8 +139,8 @@ function Dashboard() {
             <div key={i} className="kpi-card">
               <div className="kpi-header">
                 <span className="kpi-label">{kpi.label}</span>
-                <span className={`kpi-badge ${kpi.good ? 'good' : 'bad'}`}>
-                  {kpi.good ? '▼' : '▲'} {kpi.reduction}%
+                <span className={`kpi-badge ${kpi.isGood ? 'good' : 'bad'}`}>
+                  {kpi.arrow} {Math.abs(kpi.reduction)}%
                 </span>
               </div>
               <div className="kpi-value">{kpi.current} <small>{kpi.unit}</small></div>
@@ -134,12 +149,12 @@ function Dashboard() {
                   className="kpi-bar-fill"
                   style={{
                     width: `${Math.min(100, (kpi.current / kpi.previous) * 100)}%`,
-                    backgroundColor: kpi.good ? '#22c55e' : '#ef4444',
+                    backgroundColor: kpi.isGood ? '#22c55e' : '#ef4444',
                   }}
                 />
               </div>
               <div className="kpi-footer">
-                vs anterior: {kpi.previous} {kpi.unit}
+                {compareLabel} {kpi.previous} {kpi.unit}
               </div>
             </div>
           ))}
@@ -154,7 +169,10 @@ function Dashboard() {
         <div className="dashboard-grid">
           <div className="dashboard-card full-width">
             <h3 className="card-title">Comparativo Período Anterior vs Atual</h3>
-            <ComparisonChart data={metricsData} />
+            <ComparisonChart
+              data={metricsData}
+              previousMonthLabel={metricsData?.previousMonth || 'Anterior'}
+            />
           </div>
 
           <div className="dashboard-card">
