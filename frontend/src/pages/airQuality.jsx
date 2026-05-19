@@ -9,6 +9,7 @@ import './airQuality.css';
 function AirQuality() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({ city: 'São Paulo', month: 'Jun' });
 
   useEffect(() => {
@@ -16,14 +17,26 @@ function AirQuality() {
 
     async function loadAirQualityData() {
       setLoading(true);
-      const result = await getDataForCityAndMonth(filters.city, filters.month);
+      setError(null);
 
-      if (!isMounted) {
-        return;
+      try {
+        const result = await getDataForCityAndMonth(filters.city, filters.month);
+        if (!isMounted) {
+          return;
+        }
+        setData(result);
+      } catch (requestError) {
+        if (!isMounted) {
+          return;
+        }
+        console.error('Erro ao carregar qualidade do ar:', requestError);
+        setError(requestError?.response?.data?.error || 'Não foi possível carregar os dados.');
+        setData(null);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-
-      setData(result);
-      setLoading(false);
     }
 
     loadAirQualityData();
@@ -47,6 +60,17 @@ function AirQuality() {
       <Layout title="Qualidade do Ar">
         <div className="page-content">
           <div className="loading">Carregando...</div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout title="Qualidade do Ar">
+        <div className="airquality-container">
+          <FilterBar onFilterChange={handleFilterChange} defaultCity={filters.city} defaultMonth={filters.month} />
+          <p className="loading">{error}</p>
         </div>
       </Layout>
     );

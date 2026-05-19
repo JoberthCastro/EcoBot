@@ -92,10 +92,9 @@ async function getUnifiedData(req, res) {
     }
 
     if (month) {
-      const monthData = series.find((entry) => entry.month === month);
+      let monthData = series.find((entry) => entry.month === month);
       if (!monthData) {
-        const available = series.map((entry) => entry.month).join(', ');
-        return res.status(400).json({ error: `Mês indisponível na API para esta cidade. Disponíveis: ${available}` });
+        monthData = series[series.length - 1];
       }
       return res.json(monthData);
     }
@@ -126,18 +125,19 @@ async function getUnifiedMetrics(req, res) {
       return res.status(502).json({ error: 'Não foi possível obter métricas da OpenAQ.' });
     }
 
-    const monthIndex = series.findIndex((entry) => entry.month === month);
+    let monthIndex = series.findIndex((entry) => entry.month === month);
     if (monthIndex < 0) {
-      const available = series.map((entry) => entry.month).join(', ');
-      return res.status(400).json({ error: `Mês inválido. Disponíveis na API: ${available}` });
+      monthIndex = series.length - 1;
     }
 
     const current = series[monthIndex];
     const previous = series[monthIndex > 0 ? monthIndex - 1 : 0];
+    const resolvedMonth = current.month;
 
     const metrics = {
-      month,
-      previousMonth: monthIndex > 0 ? series[monthIndex - 1].month : month,
+      month: resolvedMonth,
+      requestedMonth: month,
+      previousMonth: monthIndex > 0 ? series[monthIndex - 1].month : resolvedMonth,
       source,
       energyConsumption: {
         current: current.esgMetrics.energyConsumption,

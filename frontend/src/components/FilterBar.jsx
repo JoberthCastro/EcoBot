@@ -7,6 +7,7 @@ function FilterBar({ onFilterChange, defaultCity = 'São Paulo', defaultMonth = 
   const [months, setMonths] = useState([]);
   const [selectedCity, setSelectedCity] = useState(defaultCity);
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
+  const [filtersReady, setFiltersReady] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -30,6 +31,7 @@ function FilterBar({ onFilterChange, defaultCity = 'São Paulo', defaultMonth = 
     let isMounted = true;
 
     async function loadMonthsForCity() {
+      setFiltersReady(false);
       const monthsData = await getMonths(selectedCity);
       if (!isMounted) {
         return;
@@ -39,10 +41,13 @@ function FilterBar({ onFilterChange, defaultCity = 'São Paulo', defaultMonth = 
       if (monthsData.length && !monthsData.includes(selectedMonth)) {
         setSelectedMonth(monthsData[monthsData.length - 1]);
       }
+      setFiltersReady(true);
     }
 
     if (showMonthFilter && selectedCity) {
       loadMonthsForCity();
+    } else {
+      setFiltersReady(true);
     }
 
     return () => {
@@ -51,10 +56,11 @@ function FilterBar({ onFilterChange, defaultCity = 'São Paulo', defaultMonth = 
   }, [selectedCity, showMonthFilter]);
 
   useEffect(() => {
-    if (onFilterChange) {
-      onFilterChange({ city: selectedCity, month: showMonthFilter ? selectedMonth : null });
+    if (!filtersReady || !onFilterChange) {
+      return;
     }
-  }, [selectedCity, selectedMonth, showMonthFilter]);
+    onFilterChange({ city: selectedCity, month: showMonthFilter ? selectedMonth : null });
+  }, [selectedCity, selectedMonth, showMonthFilter, filtersReady, onFilterChange]);
 
   return (
     <div className="filter-bar">

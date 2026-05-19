@@ -15,10 +15,22 @@ async function getMonths(city) {
   return response.data;
 }
 
+async function resolveMonthForCity(city, month) {
+  const months = await getMonths(city);
+  if (!months.length) {
+    return month;
+  }
+  if (month && months.includes(month)) {
+    return month;
+  }
+  return months[months.length - 1];
+}
+
 async function getDataForCityAndMonth(city, month) {
+  const validMonth = month ? await resolveMonthForCity(city, month) : null;
   const params = { city };
-  if (month) {
-    params.month = month;
+  if (validMonth) {
+    params.month = validMonth;
   }
 
   const response = await apiClient.get('/unified/data', { params });
@@ -26,9 +38,10 @@ async function getDataForCityAndMonth(city, month) {
 }
 
 async function getMetricsForCity(city, month) {
+  const validMonth = month ? await resolveMonthForCity(city, month) : null;
   const params = { city };
-  if (month) {
-    params.month = month;
+  if (validMonth) {
+    params.month = validMonth;
   }
 
   const response = await apiClient.get('/unified/metrics', { params });
@@ -38,6 +51,7 @@ async function getMetricsForCity(city, month) {
 export {
   getCities,
   getMonths,
+  resolveMonthForCity,
   getDataForCityAndMonth,
-  getMetricsForCity
+  getMetricsForCity,
 };
