@@ -61,19 +61,41 @@ async function getLiveCitySnapshot(city) {
   };
 }
 
+function scaleReading(value, factor, fallback) {
+  const base = value != null ? value : fallback;
+  return parseFloat((base * factor).toFixed(1));
+}
+
 function buildHistoricalSeriesFromSnapshot(snapshot) {
+  const baseAq = snapshot.airQuality || {};
+
   return monthOrder.map((month, index) => {
     const factor = 1 + ((index - (monthOrder.length - 1)) * 0.03);
 
     const airQuality = {
-      pm25: parseFloat(clampMetric((snapshot.airQuality.pm25 || 15) * factor, 1, 250).toFixed(1)),
-      pm10: parseFloat(clampMetric((snapshot.airQuality.pm10 || 25) * factor, 1, 300).toFixed(1)),
-      no2: parseFloat(clampMetric((snapshot.airQuality.no2 || 12) * factor, 1, 220).toFixed(1)),
-      o3: parseFloat(clampMetric((snapshot.airQuality.o3 || 18) * factor, 1, 220).toFixed(1)),
-      co: parseFloat(clampMetric((snapshot.airQuality.co || 2) * factor, 0.1, 40).toFixed(1)),
-      so2: parseFloat(clampMetric((snapshot.airQuality.so2 || 5) * factor, 0.1, 180).toFixed(1)),
-      aqi: parseFloat(clampMetric((snapshot.airQuality.aqi || 30) * factor, 1, 300).toFixed(1))
+      pm25: scaleReading(baseAq.pm25, factor, 15),
+      pm10: scaleReading(baseAq.pm10, factor, 25),
+      no2: scaleReading(baseAq.no2, factor, 12),
+      o3: scaleReading(baseAq.o3, factor, 18),
+      co: scaleReading(baseAq.co, factor, 2),
+      so2: scaleReading(baseAq.so2, factor, 5),
+      aqi: 0,
     };
+
+    airQuality.aqi = parseFloat(
+      clampMetric(
+        Math.max(
+          airQuality.pm25 || 0,
+          airQuality.pm10 || 0,
+          airQuality.no2 || 0,
+          airQuality.o3 || 0,
+          airQuality.co || 0,
+          airQuality.so2 || 0
+        ),
+        1,
+        300
+      ).toFixed(1)
+    );
 
     const esgMetrics = buildEsgFromAirQuality(airQuality);
 
@@ -83,7 +105,7 @@ function buildHistoricalSeriesFromSnapshot(snapshot) {
       airQuality,
       esgMetrics,
       sustainabilityScore: buildSustainabilityScore(airQuality, esgMetrics),
-      source: `${snapshot.source} (série temporal derivada)`,
+      source: `${snapshot.source} · projeção mensal estimada`,
       timestamp: new Date(new Date().getFullYear(), index, 15)
     };
   });

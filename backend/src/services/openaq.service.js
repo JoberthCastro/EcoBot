@@ -172,6 +172,76 @@ async function resolveLocationForCity(city, country, headers) {
   return null;
 }
 
+function normalizeParameterName(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\./g, '')
+    .replace(/µg\/m³|ug\/m3|mg\/m³|mg\/m3/g, '')
+    .trim();
+}
+
+function buildSensorParameterMap(locationInfo) {
+  const map = new Map();
+  const sensors = locationInfo?.sensors || [];
+
+  sensors.forEach((sensor) => {
+    if (sensor?.id == null) {
+      return;
+    }
+    const paramName = normalizeParameterName(sensor.parameter?.name || sensor.name);
+    if (paramName) {
+      map.set(sensor.id, paramName);
+    }
+  });
+
+  return map;
+}
+
+async function enrichLocationDetails(location, headers) {
+  if (!location?.id) {
+    return location;
+  }
+
+  const hasSensorParams = (location.sensors || []).some((sensor) => sensor.parameter?.name);
+  if (hasSensorParams && (location.sensors || []).length > 0) {
+    return location;
+  }
+
+  const response = await axios.get(`${OPENAQ_BASE_URL}/locations/${location.id}`, { headers });
+  return response.data?.results?.[0] || location;
+}
+
+function applyMeasurement(measurements, param, value) {
+  if (value === undefined || value === null || !param) {
+    return;
+  }
+
+  const numericValue = parseFloat(Number(value).toFixed(2));
+  if (param === 'pm25' || param === 'pm2.5') measurements.pm25 = numericValue;
+  else if (param === 'pm10') measurements.pm10 = numericValue;
+  else if (param === 'no2') measurements.no2 = numericValue;
+  else if (param === 'o3') measurements.o3 = numericValue;
+  else if (param === 'co') measurements.co = numericValue;
+  else if (param === 'so2') measurements.so2 = numericValue;
+}
+
+function computeAqi(measurements) {
+  const values = [
+    measurements.pm25,
+    measurements.pm10,
+    measurements.no2,
+    measurements.o3,
+    measurements.co,
+    measurements.so2,
+  ].filter((value) => value != null);
+
+  if (!values.length) {
+    return 50;
+  }
+
+  return parseFloat(Math.max(...values).toFixed(1));
+}
+
 async function fetchAirQualityFromOpenAQ(query, country) {
   const OPENAQ_API_KEY = getOpenAQApiKey();
   if (!OPENAQ_API_KEY) {
@@ -188,12 +258,14 @@ async function fetchAirQualityFromOpenAQ(query, country) {
       return getSimulatedData(query);
     }
 
-    const latestResponse = await axios.get(`${OPENAQ_BASE_URL}/locations/${matchedLocation.id}/latest`, {
+    const locationDetails = await enrichLocationDetails(matchedLocation, headers);
+
+    const latestResponse = await axios.get(`${OPENAQ_BASE_URL}/locations/${locationDetails.id}/latest`, {
       headers,
     });
 
     const latestData = latestResponse.data.results || [];
-    return convertOpenAQToESG(latestData, matchedLocation);
+    return convertOpenAQToESG(latestData, locationDetails);
   } catch (error) {
     const status = error.response?.status;
     const detail = error.response?.data?.detail || error.response?.data;
@@ -220,6 +292,7 @@ function convertOpenAQToESG(openAQData, locationInfo) {
     return getSimulatedData(locationInfo?.name || 'Desconhecido');
   }
 
+  const sensorMap = buildSensorParameterMap(locationInfo);
   const measurements = {
     pm25: null,
     pm10: null,
@@ -227,28 +300,46 @@ function convertOpenAQToESG(openAQData, locationInfo) {
     o3: null,
     co: null,
     so2: null,
-    aqi: 0
+    aqi: 0,
   };
 
-  openAQData.forEach(data => {
-    if (data.value === undefined || data.value === null) return;
-    const param = (data.parameter || '').toLowerCase().replace('.', '');
-    if (param === 'pm25') measurements.pm25 = data.value;
-    else if (param === 'pm10') measurements.pm10 = data.value;
-    else if (param === 'no2') measurements.no2 = data.value;
-    else if (param === 'o3') measurements.o3 = data.value;
-    else if (param === 'co') measurements.co = data.value;
-    else if (param === 'so2') measurements.so2 = data.value;
+  let latestReadingAt = null;
+
+  openAQData.forEach((data) => {
+    if (data.value === undefined || data.value === null) {
+      return;
+    }
+
+    let param = normalizeParameterName(data.parameter?.name || data.parameter);
+    if (!param && data.sensorsId != null) {
+      param = sensorMap.get(data.sensorsId) || '';
+    }
+
+    applyMeasurement(measurements, param, data.value);
+
+    const readingAt = data.datetime?.utc ? new Date(data.datetime.utc) : null;
+    if (readingAt && (!latestReadingAt || readingAt > latestReadingAt)) {
+      latestReadingAt = readingAt;
+    }
   });
 
-  measurements.aqi = Math.max(
-    measurements.pm25 || 0,
-    measurements.pm10 || 0,
-    measurements.no2 || 0,
-    measurements.o3 || 0,
-    measurements.co || 0,
-    measurements.so2 || 0
-  ) || 50;
+  measurements.aqi = computeAqi(measurements);
+
+  const parsedCount = [
+    measurements.pm25,
+    measurements.pm10,
+    measurements.no2,
+    measurements.o3,
+    measurements.co,
+    measurements.so2,
+  ].filter((value) => value != null).length;
+
+  if (parsedCount === 0) {
+    console.warn(
+      `[OpenAQ Service] Leituras sem parâmetro mapeado em "${locationInfo?.name}" — usando simulado`
+    );
+    return getSimulatedData(locationInfo?.locality || locationInfo?.name || 'Desconhecido');
+  }
 
   const aqi = measurements.aqi;
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
@@ -279,9 +370,9 @@ function convertOpenAQToESG(openAQData, locationInfo) {
         recyclingRate
       },
       sustainabilityScore: Math.min(100, Math.max(0, sustainabilityScore)),
-      timestamp: new Date(),
-      source: 'OpenAQ API v3 (Real)'
-    }
+      timestamp: latestReadingAt || new Date(),
+      source: `OpenAQ API v3 (${parsedCount} poluentes em tempo real)`,
+    },
   ];
 }
 
