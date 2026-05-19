@@ -137,6 +137,7 @@ function Dashboard() {
           esgData={esgData}
           metricsData={metricsData}
           isSimulated={isSimulated}
+          source={airData?.source || metricsData?.source}
         />
 
         {isSimulated && (

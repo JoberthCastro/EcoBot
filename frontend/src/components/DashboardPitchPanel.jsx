@@ -19,6 +19,7 @@ function DashboardPitchPanel({
   esgData,
   metricsData,
   isSimulated,
+  source,
 }) {
   const [showScript, setShowScript] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState('');
@@ -31,6 +32,7 @@ function DashboardPitchPanel({
     esgData,
     metricsData,
     isSimulated,
+    source,
   });
 
   const handleCopySummary = async () => {
@@ -42,6 +44,7 @@ function DashboardPitchPanel({
       esgData,
       metricsData,
       isSimulated,
+      source,
     });
 
     try {

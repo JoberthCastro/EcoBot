@@ -13,12 +13,13 @@ export function buildExecutiveInsights({
   esgData,
   metricsData,
   isSimulated,
+  source,
 }) {
   const insights = [];
   const aqi = Number(airQuality?.aqi || 0);
   const aqiInfo = getAqiLabel(aqi);
 
-  const isFromOpenAQ = !isSimulated && (airData?.source || '').toLowerCase().includes('openaq');
+  const isFromOpenAQ = !isSimulated && String(source || '').toLowerCase().includes('openaq');
 
   insights.push({
     tone: isSimulated ? 'warning' : 'success',
