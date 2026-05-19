@@ -53,7 +53,28 @@ function pickBestLocation(locations, query, country) {
     .filter((item) => item.score >= 0)
     .sort((a, b) => b.score - a.score);
 
-  return ranked.length ? ranked[0].loc : null;
+  if (ranked.length) {
+    return ranked[0].loc;
+  }
+
+  if (locations.length > 0) {
+    const sorted = sortLocationsByDistance(locations);
+    return sorted[0];
+  }
+
+  return null;
+}
+
+function sortLocationsByDistance(locations) {
+  return [...locations].sort((a, b) => {
+    const distA = typeof a.distance === 'number' ? a.distance : Number.POSITIVE_INFINITY;
+    const distB = typeof b.distance === 'number' ? b.distance : Number.POSITIVE_INFINITY;
+    return distA - distB;
+  });
+}
+
+function formatCoordinates(latitude, longitude) {
+  return `${Number(latitude).toFixed(4)},${Number(longitude).toFixed(4)}`;
 }
 
 function getOpenAQApiKey() {
@@ -80,8 +101,19 @@ function seededValue(seed, index, min, max) {
 }
 
 async function fetchLocationsPage(headers, params) {
-  const response = await axios.get(`${OPENAQ_BASE_URL}/locations`, { headers, params });
-  return response.data.results || [];
+  try {
+    const response = await axios.get(`${OPENAQ_BASE_URL}/locations`, { headers, params });
+    return response.data.results || [];
+  } catch (error) {
+    const status = error.response?.status;
+    const detail = error.response?.data?.detail || error.response?.data;
+    console.warn(
+      `[OpenAQ Service] Falha em /locations (${status || 'erro'}):`,
+      JSON.stringify(params),
+      detail ? JSON.stringify(detail) : error.message
+    );
+    throw error;
+  }
 }
 
 async function resolveLocationForCity(city, country, headers) {
@@ -90,27 +122,38 @@ async function resolveLocationForCity(city, country, headers) {
   const coords = CITY_COORDINATES[normalizedCity];
 
   if (coords) {
-    const nearbyLocations = await fetchLocationsPage(headers, {
-      coordinates: `${coords.latitude},${coords.longitude}`,
-      radius: 25000,
-      iso,
-      limit: 100,
-      order_by: 'distance',
-      sort_order: 'asc',
-    });
+    try {
+      const nearbyLocations = await fetchLocationsPage(headers, {
+        coordinates: formatCoordinates(coords.latitude, coords.longitude),
+        radius: 25000,
+        limit: 100,
+      });
 
-    const nearbyMatch = pickBestLocation(nearbyLocations, city, country);
-    if (nearbyMatch) {
-      return nearbyMatch;
+      const nearbyMatch = pickBestLocation(nearbyLocations, city, country);
+      if (nearbyMatch) {
+        return nearbyMatch;
+      }
+    } catch (error) {
+      if (error.response?.status !== 422) {
+        throw error;
+      }
     }
   }
 
   for (let page = 1; page <= 5; page += 1) {
-    const locations = await fetchLocationsPage(headers, {
-      iso,
-      limit: 1000,
-      page,
-    });
+    let locations;
+    try {
+      locations = await fetchLocationsPage(headers, {
+        iso,
+        limit: 1000,
+        page,
+      });
+    } catch (error) {
+      if (error.response?.status === 422 && page > 1) {
+        break;
+      }
+      throw error;
+    }
 
     if (!locations.length) {
       break;
@@ -152,7 +195,13 @@ async function fetchAirQualityFromOpenAQ(query, country) {
     const latestData = latestResponse.data.results || [];
     return convertOpenAQToESG(latestData, matchedLocation);
   } catch (error) {
-    console.error('[OpenAQ Service] Erro ao buscar dados:', error.message);
+    const status = error.response?.status;
+    const detail = error.response?.data?.detail || error.response?.data;
+    console.error(
+      '[OpenAQ Service] Erro ao buscar dados:',
+      status ? `HTTP ${status}` : error.message,
+      detail ? JSON.stringify(detail) : ''
+    );
     console.warn('[OpenAQ Service] Usando dados simulados como fallback');
     return getSimulatedData(query);
   }
@@ -336,5 +385,7 @@ module.exports = {
   getSimulatedData,
   pickBestLocation,
   resolveLocationForCity,
+  sortLocationsByDistance,
+  formatCoordinates,
   CITY_COORDINATES,
 };
