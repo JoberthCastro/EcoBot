@@ -5,6 +5,42 @@
   background-color: #f5f5f5;
 }
 
+.chatbot-pitch-intro {
+  margin: 0;
+  padding: 14px 20px 0;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.chat-quick-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 20px;
+}
+
+.chat-quick-btn {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.chat-quick-btn:hover:not(:disabled) {
+  background: #dcfce7;
+}
+
+.chat-quick-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .chat-messages {
   flex: 1;
   overflow-y: auto;

@@ -3,6 +3,14 @@ import Layout from '../components/Layout';
 import { sendChatMessage } from '../services/chatApi';
 import './chatbot.css';
 
+const QUICK_PROMPTS = [
+  'Como está o consumo de energia?',
+  'Explique as emissões de CO2',
+  'O que monitoramos na OpenAQ?',
+  'Como funciona o score ESG?',
+  'Quais sugestões de otimização?',
+];
+
 function Chatbot() {
   const [messages, setMessages] = useState([
     { id: 1, text: 'Olá! Sou o EcoBot. Como posso ajudar com suas dúvidas sobre sustentabilidade e ESG?', sender: 'bot' },
@@ -10,17 +18,17 @@ function Chatbot() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
+  const submitMessage = async (text) => {
+    const trimmed = String(text || '').trim();
+    if (!trimmed || loading) return;
 
-    const userMessage = { id: Date.now(), text: input, sender: 'user' };
-    setMessages(prev => [...prev, userMessage]);
+    const userMessage = { id: Date.now(), text: trimmed, sender: 'user' };
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setLoading(true);
 
     try {
-      const { response } = await sendChatMessage(input);
+      const { response } = await sendChatMessage(trimmed);
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         text: response,
@@ -37,9 +45,30 @@ function Chatbot() {
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await submitMessage(input);
+  };
+
   return (
     <Layout title="Chatbot ESG">
       <div className="chatbot-container">
+        <p className="chatbot-pitch-intro">
+          Assistente ESG integrado ao painel — ideal para demonstrar suporte à decisão em tempo real.
+        </p>
+        <div className="chat-quick-prompts">
+          {QUICK_PROMPTS.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              className="chat-quick-btn"
+              onClick={() => submitMessage(prompt)}
+              disabled={loading}
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
         <div className="chat-messages">
           {messages.map(msg => (
             <div key={msg.id} className={`chat-message ${msg.sender}`}>

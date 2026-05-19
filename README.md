@@ -1,6 +1,17 @@
 # EcoBot
 
-O EcoBot utiliza React no frontend, Node.js com Express no backend, MongoDB para persistência de dados e testes com Jest, garantindo uma arquitetura simples, escalável e eficiente.
+**Demo:** [ecobotti.vercel.app](https://ecobotti.vercel.app) · **Pitch / roteiro de apresentação:** [PITCH.md](./PITCH.md)
+
+O EcoBot é uma plataforma de **monitoramento ESG** que unifica qualidade do ar (OpenAQ v3), métricas ambientais (CO₂, energia, água, resíduos), score de sustentabilidade, histórico mensal e assistente inteligente — em uma única interface web.
+
+Stack: React no frontend, Node.js com Express no backend, MongoDB para persistência e Jest para testes.
+
+### Destaques para apresentação
+
+- Dashboard com **painel executivo**, insights automáticos e roteiro de demo (5 min)
+- Integração **OpenAQ API v3** com dados reais por cidade (BR)
+- **Chatbot ESG** com prompts rápidos para demonstração ao vivo
+- **Sugestões de otimização** priorizadas por impacto
 
 ## Arquitetura do Projeto
 
@@ -136,6 +147,15 @@ EcoBot/
 - A raiz do projeto foi ajustada para facilitar deploy na Vercel com `server.js` e `vercel.json`.
 
 ## Endpoints Disponíveis Hoje
+
+### API unificada (dashboard)
+
+- `GET /api/unified/cities` - cidades suportadas
+- `GET /api/unified/months` - meses da série histórica
+- `GET /api/unified/data?city=&month=` - dados ESG + qualidade do ar
+- `GET /api/unified/metrics?city=&month=` - KPIs comparativos (mês vs anterior)
+
+### Demais rotas
 
 - `GET /api/health` - health check da API
 - `GET /api/metrics` - métricas de sustentabilidade (mock)
