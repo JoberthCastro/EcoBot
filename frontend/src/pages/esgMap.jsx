@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
+import { BRAZIL_MAP, projectCity } from '../constants/brazilMap';
 import { getMapOverview, getMonths } from '../services/unifiedApi';
 import './esgMap.css';
 
@@ -10,55 +11,178 @@ const scoreLabels = {
   attention: 'Atenção',
 };
 
-function BrazilMap({ cities, selectedCity, onSelectCity }) {
+const CITY_LAYOUT = {
+  'São Paulo': { labelX: -46, labelY: -52, anchor: 'end' },
+  'Rio de Janeiro': { labelX: 46, labelY: -48, anchor: 'start' },
+  'Belo Horizonte': { labelX: 0, labelY: -56, anchor: 'middle' },
+  Curitiba: { labelX: -50, labelY: 42, anchor: 'end' },
+};
+
+function MapMarker({ city, isSelected, isHovered, onSelect, onHover }) {
+  const point = projectCity(city.lat, city.lng);
+  const layout = CITY_LAYOUT[city.name] || { labelX: 0, labelY: -48, anchor: 'middle' };
+  const isActive = isSelected || isHovered;
+  const score = city.sustainabilityScore ?? '—';
+
   return (
-    <svg
-      className="esg-map-svg"
-      viewBox="0 0 100 100"
-      role="img"
-      aria-label="Mapa do Brasil com cidades monitoradas"
+    <g
+      className={`esg-map-marker ${city.scoreLevel} ${isSelected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}`}
+      transform={`translate(${point.x}, ${point.y})`}
+      onClick={() => onSelect(city)}
+      onMouseEnter={() => onHover(city.name)}
+      onMouseLeave={() => onHover(null)}
+      onFocus={() => onHover(city.name)}
+      onBlur={() => onHover(null)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelect(city);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`${city.name}, score ${score}`}
     >
-      <defs>
-        <linearGradient id="mapBg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ecfdf5" />
-          <stop offset="100%" stopColor="#d1fae5" />
-        </linearGradient>
-      </defs>
+      {isActive && <circle className="esg-map-marker-pulse" r="18" />}
 
-      <rect width="100" height="100" fill="url(#mapBg)" rx="4" />
-
-      <path
-        className="esg-map-country"
-        d="M 18 8 L 28 6 L 38 8 L 48 10 L 58 12 L 68 14 L 76 18 L 82 24 L 84 32 L 82 40 L 78 48 L 74 56 L 70 64 L 66 72 L 60 78 L 52 84 L 44 88 L 36 90 L 28 88 L 22 82 L 18 74 L 16 66 L 14 58 L 12 50 L 10 42 L 10 34 L 12 26 L 14 18 Z"
+      <line
+        className="esg-map-marker-line"
+        x1={0}
+        y1={-16}
+        x2={layout.labelX * 0.35}
+        y2={layout.labelY * 0.55}
       />
 
-      {cities.map((city) => {
-        const isSelected = selectedCity?.name === city.name;
-        return (
-          <g
-            key={city.name}
-            className={`esg-map-pin ${city.scoreLevel} ${isSelected ? 'selected' : ''}`}
-            transform={`translate(${city.mapX}, ${city.mapY})`}
-            onClick={() => onSelectCity(city)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                onSelectCity(city);
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            aria-label={`${city.name}, score ${city.sustainabilityScore ?? 'N/A'}`}
-          >
-            <circle className="esg-map-pin-ring" r={isSelected ? 6 : 4.5} />
-            <circle className="esg-map-pin-dot" r={2.2} />
-            <text className="esg-map-pin-label" y={-7}>
-              {city.name.split(' ')[0]}
+      <g className="esg-map-marker-pin">
+        <path d="M0,-17 C-7.5,-17 -12.5,-11.5 -12.5,-5 C-12.5,2.5 0,18 0,18 C0,18 12.5,2.5 12.5,-5 C12.5,-11.5 7.5,-17 0,-17 Z" />
+        <circle className="esg-map-marker-pin-core" cy="-6.5" r="4.8" />
+      </g>
+
+      <g transform={`translate(${layout.labelX}, ${layout.labelY})`}>
+        <rect
+          className="esg-map-marker-label-bg"
+          x={layout.anchor === 'start' ? 0 : layout.anchor === 'end' ? -92 : -46}
+          y={-14}
+          width={92}
+          height={28}
+          rx={8}
+        />
+        <text
+          className="esg-map-marker-label-title"
+          x={layout.anchor === 'start' ? 8 : layout.anchor === 'end' ? -8 : 0}
+          y={-1}
+          textAnchor={layout.anchor}
+        >
+          {city.name}
+        </text>
+        <text
+          className="esg-map-marker-label-score"
+          x={layout.anchor === 'start' ? 8 : layout.anchor === 'end' ? -8 : 0}
+          y={10}
+          textAnchor={layout.anchor}
+        >
+          Score {score}
+        </text>
+      </g>
+
+      {isActive && (
+        <g className="esg-map-marker-tooltip" transform="translate(0, -72)">
+          <rect x="-58" y="-18" width="116" height="36" rx="10" />
+          <text y="-2" textAnchor="middle">
+            {scoreLabels[city.scoreLevel]} · AQI {city.airQuality?.aqi ?? '—'}
+          </text>
+          <text className="esg-map-marker-tooltip-sub" y="12" textAnchor="middle">
+            Clique para detalhes
+          </text>
+        </g>
+      )}
+    </g>
+  );
+}
+
+function BrazilMap({ cities, selectedCity, onSelectCity }) {
+  const [hoveredCity, setHoveredCity] = useState(null);
+  const { width, height, outlinePath } = BRAZIL_MAP;
+
+  const gridLines = useMemo(
+    () => [-5, -15, -25].map((lat) => {
+      const point = projectCity(lat, -54);
+      return { lat, y: point.y };
+    }),
+    []
+  );
+
+  return (
+    <div className="esg-map-canvas-wrap">
+      <svg
+        className="esg-map-svg"
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label="Mapa do Brasil com cidades monitoradas"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <defs>
+          <linearGradient id="oceanGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#dbeafe" />
+            <stop offset="55%" stopColor="#bfdbfe" />
+            <stop offset="100%" stopColor="#93c5fd" />
+          </linearGradient>
+          <linearGradient id="landGradient" x1="20%" y1="0%" x2="80%" y2="100%">
+            <stop offset="0%" stopColor="#86efac" />
+            <stop offset="45%" stopColor="#4ade80" />
+            <stop offset="100%" stopColor="#22c55e" />
+          </linearGradient>
+          <filter id="landShadow" x="-8%" y="-8%" width="116%" height="116%">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#0f766e" floodOpacity="0.22" />
+          </filter>
+          <filter id="pinShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#0f172a" floodOpacity="0.28" />
+          </filter>
+        </defs>
+
+        <rect width={width} height={height} fill="url(#oceanGradient)" rx="14" />
+
+        {gridLines.map((line) => (
+          <g key={line.lat}>
+            <line
+              className="esg-map-grid-line"
+              x1="24"
+              y1={line.y}
+              x2={width - 24}
+              y2={line.y}
+            />
+            <text className="esg-map-grid-label" x="28" y={line.y - 4}>
+              {Math.abs(line.lat)}°S
             </text>
           </g>
-        );
-      })}
-    </svg>
+        ))}
+
+        <path
+          className="esg-map-country"
+          d={outlinePath}
+          filter="url(#landShadow)"
+        />
+
+        <path className="esg-map-country-highlight" d={outlinePath} />
+
+        {cities.map((city) => (
+          <MapMarker
+            key={city.name}
+            city={city}
+            isSelected={selectedCity?.name === city.name}
+            isHovered={hoveredCity === city.name}
+            onSelect={onSelectCity}
+            onHover={setHoveredCity}
+          />
+        ))}
+
+        <g className="esg-map-compass" transform={`translate(${width - 54}, 42)`}>
+          <circle r="16" />
+          <polygon points="0,-10 3,2 -3,2" />
+          <text y="24">N</text>
+        </g>
+      </svg>
+    </div>
   );
 }
 

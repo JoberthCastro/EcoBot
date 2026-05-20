@@ -46,78 +46,174 @@
 
 .esg-map-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.75fr);
   gap: 20px;
 }
 
 .esg-map-panel {
   background: #fff;
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.esg-map-canvas-wrap {
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+  border-radius: 14px;
+  padding: 8px;
+  border: 1px solid #bfdbfe;
 }
 
 .esg-map-svg {
   width: 100%;
-  max-height: 420px;
+  min-height: 460px;
+  max-height: 560px;
   display: block;
 }
 
-.esg-map-country {
-  fill: #bbf7d0;
-  stroke: #059669;
-  stroke-width: 0.6;
+.esg-map-grid-line {
+  stroke: rgba(255, 255, 255, 0.45);
+  stroke-width: 1;
+  stroke-dasharray: 5 6;
 }
 
-.esg-map-pin {
+.esg-map-grid-label {
+  font-size: 9px;
+  fill: rgba(30, 64, 175, 0.65);
+  font-weight: 600;
+}
+
+.esg-map-country {
+  fill: url(#landGradient);
+  stroke: #15803d;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.esg-map-country-highlight {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 0.8;
+  pointer-events: none;
+}
+
+.esg-map-marker {
   cursor: pointer;
   outline: none;
 }
 
-.esg-map-pin-ring {
-  fill: rgba(255, 255, 255, 0.9);
+.esg-map-marker-pulse {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  opacity: 0.45;
+  animation: esg-map-pulse 1.8s ease-out infinite;
+}
+
+.esg-map-marker-line {
+  stroke: rgba(15, 23, 42, 0.25);
   stroke-width: 1.2;
+  stroke-dasharray: 3 3;
 }
 
-.esg-map-pin-dot {
+.esg-map-marker-pin {
+  filter: url(#pinShadow);
+}
+
+.esg-map-marker-pin path {
   fill: currentColor;
+  stroke: #fff;
+  stroke-width: 1.4;
 }
 
-.esg-map-pin.good {
+.esg-map-marker-pin-core {
+  fill: #fff;
+}
+
+.esg-map-marker.good {
   color: #059669;
 }
 
-.esg-map-pin.good .esg-map-pin-ring {
-  stroke: #059669;
-}
-
-.esg-map-pin.moderate {
+.esg-map-marker.moderate {
   color: #d97706;
 }
 
-.esg-map-pin.moderate .esg-map-pin-ring {
-  stroke: #d97706;
-}
-
-.esg-map-pin.attention {
+.esg-map-marker.attention {
   color: #dc2626;
 }
 
-.esg-map-pin.attention .esg-map-pin-ring {
-  stroke: #dc2626;
+.esg-map-marker.selected .esg-map-marker-pin path,
+.esg-map-marker.hovered .esg-map-marker-pin path {
+  stroke-width: 2;
 }
 
-.esg-map-pin.selected .esg-map-pin-ring {
-  stroke-width: 1.8;
-  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.2));
+.esg-map-marker-label-bg {
+  fill: rgba(255, 255, 255, 0.96);
+  stroke: rgba(15, 23, 42, 0.08);
+  stroke-width: 1;
 }
 
-.esg-map-pin-label {
-  font-size: 3.2px;
-  text-anchor: middle;
-  fill: #374151;
+.esg-map-marker-label-title {
+  font-size: 9px;
+  font-weight: 700;
+  fill: #0f172a;
+}
+
+.esg-map-marker-label-score {
+  font-size: 8px;
   font-weight: 600;
-  pointer-events: none;
+  fill: #64748b;
+}
+
+.esg-map-marker.selected .esg-map-marker-label-bg,
+.esg-map-marker.hovered .esg-map-marker-label-bg {
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+
+.esg-map-marker-tooltip rect {
+  fill: rgba(15, 23, 42, 0.92);
+}
+
+.esg-map-marker-tooltip text {
+  fill: #f8fafc;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.esg-map-marker-tooltip-sub {
+  fill: #cbd5e1;
+  font-size: 8px;
+  font-weight: 500;
+}
+
+.esg-map-compass circle {
+  fill: rgba(255, 255, 255, 0.92);
+  stroke: rgba(15, 23, 42, 0.12);
+  stroke-width: 1;
+}
+
+.esg-map-compass polygon {
+  fill: #059669;
+}
+
+.esg-map-compass text {
+  font-size: 9px;
+  font-weight: 700;
+  fill: #334155;
+  text-anchor: middle;
+}
+
+@keyframes esg-map-pulse {
+  0% {
+    r: 10;
+    opacity: 0.55;
+  }
+
+  100% {
+    r: 24;
+    opacity: 0;
+  }
 }
 
 .esg-map-legend {
@@ -301,6 +397,11 @@
   background: #1f2937;
 }
 
+.dark-theme .esg-map-canvas-wrap {
+  background: linear-gradient(180deg, #1e3a5f 0%, #172554 100%);
+  border-color: #1d4ed8;
+}
+
 .dark-theme .esg-map-toolbar-text h2,
 .dark-theme .esg-map-details-header h3,
 .dark-theme .metric-value,
@@ -330,5 +431,9 @@
 
   .esg-map-toolbar {
     flex-direction: column;
+  }
+
+  .esg-map-svg {
+    min-height: 340px;
   }
 }
