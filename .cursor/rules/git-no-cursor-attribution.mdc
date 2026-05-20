@@ -1,0 +1,11 @@
+---
+description: Não adicionar atribuição do Cursor em commits
+alwaysApply: true
+---
+
+Nunca inclua trailers ou linhas de atribuição do Cursor em commits, PRs ou mensagens de commit:
+- `Co-authored-by: Cursor <cursoragent@cursor.com>`
+- `Made-with: Cursor`
+- Qualquer menção a cursoragent
+
+Os commits devem listar apenas o autor humano do repositório.

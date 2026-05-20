@@ -1,4 +1,6 @@
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
-module.exports = require('../backend/src/app');
+const app = require('../backend/src/app');
+
+module.exports = (req, res) => app(req, res);
