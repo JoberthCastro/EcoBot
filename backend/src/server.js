@@ -13,7 +13,11 @@ async function startServer() {
   });
 }
 
-startServer().catch((error) => {
-  console.error('Failed to start EcoBot API', error);
-  process.exit(1);
-});
+if (require.main === module) {
+  startServer().catch((error) => {
+    console.error('Failed to start EcoBot API', error);
+    process.exit(1);
+  });
+}
+
+module.exports = { app, startServer };
