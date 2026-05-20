@@ -342,6 +342,12 @@
 [data-theme="dark"] .suggestion-desc  { color: #94a3b8; }
 [data-theme="dark"] .loading { color: #64748b; }
 
+[data-theme="dark"] .data-source-banner {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(251, 191, 36, 0.35);
+  color: #fcd34d;
+}
+
 /* ── Responsive ── */
 @media (max-width: 1200px) {
   .kpi-row { grid-template-columns: repeat(2, 1fr); }

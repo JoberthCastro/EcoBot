@@ -57,8 +57,12 @@ function Layout({ title, children }) {
     <div className={`layout ${theme === 'dark' ? 'dark-theme' : ''}`}>
       <aside className="sidebar">
         <div className="sidebar-header">
-          <img src="/logo.png" alt="EcoBot" className="sidebar-logo" />
-          <span className="sidebar-title">EcoBot</span>
+          <div className="sidebar-logo-wrap" aria-hidden="true">
+            <img src="/logo.png" alt="" className="sidebar-logo" />
+          </div>
+          <span className="sidebar-title">
+            Eco<span>Bot</span>
+          </span>
         </div>
         <nav className="sidebar-nav">
           {menuItems.map((item) => (

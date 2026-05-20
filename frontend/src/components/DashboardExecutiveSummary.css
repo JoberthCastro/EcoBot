@@ -161,3 +161,53 @@
     flex-direction: column;
   }
 }
+
+/* ── Tema escuro ── */
+[data-theme="dark"] .executive-summary {
+  background: linear-gradient(135deg, #1e293b 0%, #172033 100%);
+  border-color: #334155;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .executive-summary-eyebrow {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .executive-summary-title {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .executive-summary-score {
+  background: #0f172a;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .executive-summary-score-label {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .executive-summary-card {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .executive-summary-card h3 {
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .executive-summary-card p {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .executive-summary-nav {
+  border-top-color: #334155;
+}
+
+[data-theme="dark"] .executive-summary-nav a {
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .executive-summary-tag {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
