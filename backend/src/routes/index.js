@@ -3,6 +3,8 @@ const metricsRoutes = require('./metrics.routes');
 const suggestionsRoutes = require('./suggestions.routes');
 const chatRoutes = require('./chat.routes');
 const airQualityRoutes = require('./airQuality.routes');
+const authRoutes = require('./auth.routes');
+const userRoutes = require('./userRoutes');
 
 const router = express.Router();
 
@@ -13,6 +15,8 @@ router.get('/health', (req, res) => {
   });
 });
 
+router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
 router.use('/metrics', metricsRoutes);
 router.use('/suggestions', suggestionsRoutes);
 router.use('/chat', chatRoutes);

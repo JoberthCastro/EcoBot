@@ -1,70 +1,53 @@
 const User = require('../models/User');
+const AppError = require('../utils/AppError');
+const sanitizeUser = require('../utils/sanitizeUser');
+const asyncHandler = require('../utils/asyncHandler');
 
-async function createUser(req, res, next) {
-  try {
-    const { nome, email, senha } = req.body;
+const getUsers = asyncHandler(async (req, res) => {
+  const users = await User.find().sort({ createdAt: -1 });
+  return res.status(200).json(users.map(sanitizeUser));
+});
 
-    const user = await User.create({ nome, email, senha });
+const getUserById = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
 
-    const safeUser = user.toObject();
-    delete safeUser.senha;
-
-    return res.status(201).json(safeUser);
-  } catch (error) {
-    return next(error);
+  if (!user) {
+    throw new AppError('Usuário não encontrado', 404);
   }
-}
 
-async function getUsers(req, res, next) {
-  try {
-    const users = await User.find().select('-senha').sort({ createdAt: -1 });
-    return res.status(200).json(users);
-  } catch (error) {
-    return next(error);
+  return res.status(200).json(sanitizeUser(user));
+});
+
+const updateUser = asyncHandler(async (req, res) => {
+  const { nome, email, senha } = req.body;
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    throw new AppError('Usuário não encontrado', 404);
   }
-}
 
-async function updateUser(req, res, next) {
-  try {
-    const { id } = req.params;
-    const { nome, email, senha } = req.body;
+  if (nome) user.nome = nome;
+  if (email) user.email = email;
+  if (senha) user.senha = senha;
 
-    const updatedUser = await User.findByIdAndUpdate(
-      id,
-      { nome, email, senha },
-      { new: true, runValidators: true }
-    ).select('-senha');
+  await user.save();
 
-    if (!updatedUser) {
-      return res.status(404).json({ message: 'Usuário não encontrado' });
-    }
+  return res.status(200).json(sanitizeUser(user));
+});
 
-    return res.status(200).json(updatedUser);
-  } catch (error) {
-    return next(error);
+const deleteUser = asyncHandler(async (req, res) => {
+  const deletedUser = await User.findByIdAndDelete(req.params.id);
+
+  if (!deletedUser) {
+    throw new AppError('Usuário não encontrado', 404);
   }
-}
 
-async function deleteUser(req, res, next) {
-  try {
-    const { id } = req.params;
-
-    const deletedUser = await User.findByIdAndDelete(id);
-
-    if (!deletedUser) {
-      return res.status(404).json({ message: 'Usuário não encontrado' });
-    }
-
-    return res.status(204).send();
-  } catch (error) {
-    return next(error);
-  }
-}
+  return res.status(204).send();
+});
 
 module.exports = {
-  createUser,
   getUsers,
+  getUserById,
   updateUser,
   deleteUser
 };
-

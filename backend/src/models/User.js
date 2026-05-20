@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const { Schema } = mongoose;
+
+const SALT_ROUNDS = 12;
 
 const userSchema = new Schema(
   {
@@ -18,7 +21,9 @@ const userSchema = new Schema(
     },
     senha: {
       type: String,
-      required: true
+      required: true,
+      minlength: 6,
+      select: false
     }
   },
   {
@@ -26,7 +31,19 @@ const userSchema = new Schema(
   }
 );
 
+userSchema.pre('save', async function hashPassword(next) {
+  if (!this.isModified('senha')) {
+    return next();
+  }
+
+  this.senha = await bcrypt.hash(this.senha, SALT_ROUNDS);
+  return next();
+});
+
+userSchema.methods.comparePassword = function comparePassword(candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.senha);
+};
+
 userSchema.index({ email: 1 }, { unique: true });
 
 module.exports = mongoose.model('User', userSchema);
-
