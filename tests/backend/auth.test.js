@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const jwt = require('jsonwebtoken');
 
-const app = require('../../backend/src/app');
+const app = require('../../backend/src/createExpressApp');
 const User = require('../../backend/src/models/User');
 
 let mongoServer;

@@ -1,0 +1,55 @@
+const express = require('express');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const routes = require('./routes');
+const userRoutes = require('./routes/userRoutes');
+const { corsOrigin } = require('./config/env');
+const errorHandler = require('./middlewares/errorHandler');
+const { connectDatabase } = require('./config/db');
+
+const server = express();
+
+let dbReady = false;
+
+server.use(async (req, res, next) => {
+  if (dbReady) {
+    return next();
+  }
+
+  try {
+    await connectDatabase();
+    dbReady = true;
+    return next();
+  } catch (error) {
+    console.error('[db] Falha ao conectar no MongoDB', error);
+    return next(error);
+  }
+});
+
+server.set('etag', false);
+server.use(cors({ origin: corsOrigin }));
+server.use(express.json());
+server.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
+server.use('/api/users', userRoutes);
+server.use('/api', routes);
+
+const publicPath = path.resolve(__dirname, '..', '..', 'public');
+const distPath = path.resolve(__dirname, '..', '..', 'dist');
+const staticPath = fs.existsSync(publicPath) ? publicPath : distPath;
+
+if (fs.existsSync(staticPath)) {
+  server.use(express.static(staticPath));
+  server.get(/^\/(?!api).*/, (req, res) => {
+    res.sendFile(path.join(staticPath, 'index.html'));
+  });
+}
+
+server.use(errorHandler);
+
+module.exports = server;
