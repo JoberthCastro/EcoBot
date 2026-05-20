@@ -41,13 +41,19 @@ server.use('/api', routes);
 
 const publicPath = path.resolve(__dirname, '..', '..', 'public');
 const distPath = path.resolve(__dirname, '..', '..', 'dist');
-const staticPath = fs.existsSync(publicPath) ? publicPath : distPath;
+const cwdPublicPath = path.resolve(process.cwd(), 'public');
+const staticPath = [publicPath, cwdPublicPath, distPath].find((candidate) => fs.existsSync(candidate));
 
-if (fs.existsSync(staticPath)) {
-  server.use(express.static(staticPath));
+if (staticPath) {
+  server.use(express.static(staticPath, { index: 'index.html' }));
+  server.get('/favicon.ico', (req, res) => {
+    res.sendFile(path.join(staticPath, 'logo.png'));
+  });
   server.get(/^\/(?!api).*/, (req, res) => {
     res.sendFile(path.join(staticPath, 'index.html'));
   });
+} else {
+  console.warn('[static] Pasta public/ não encontrada no deploy');
 }
 
 server.use(errorHandler);
