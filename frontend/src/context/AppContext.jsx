@@ -4,7 +4,8 @@ import {
   registerRequest,
   getUserById,
   updateUserProfile,
-  updateUserPreferences
+  updateUserPreferences,
+  clearAuthSession
 } from '../services/userApi';
 
 const AppContext = createContext();
@@ -39,7 +40,10 @@ export function AppProvider({ children }) {
     return JSON.parse(localStorage.getItem('ecobot-user')) || DEFAULT_USER;
   });
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('ecobot-authenticated') === 'true';
+    return (
+      localStorage.getItem('ecobot-authenticated') === 'true' &&
+      Boolean(localStorage.getItem('ecobot-token'))
+    );
   });
   const [loadingUser, setLoadingUser] = useState(false);
 
@@ -127,12 +131,10 @@ export function AppProvider({ children }) {
   const logout = () => {
     setIsAuthenticated(false);
     setUser(DEFAULT_USER);
-    localStorage.removeItem('ecobot-user');
-    localStorage.removeItem('ecobot-authenticated');
+    clearAuthSession();
   };
   const registerUser = async ({ name, email, password }) => {
-    const newUser = await registerRequest({ name, email, password });
-    return { success: true, user: newUser };
+    return registerRequest({ name, email, password });
   };
 
   const saveProfile = async ({ name, email, role, avatar }) => {
