@@ -1,4 +1,16 @@
-const http = require('http');
-const app = require('../backend/src/app');
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
-module.exports = http.createServer(app);
+const app = require('../backend/src/app');
+const { connectDatabase } = require('../backend/src/config/db');
+
+let isReady = false;
+
+module.exports = async (req, res) => {
+  if (!isReady) {
+    await connectDatabase();
+    isReady = true;
+  }
+
+  return app(req, res);
+};

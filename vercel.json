@@ -1,18 +1,17 @@
 {
+  "version": 2,
   "installCommand": "npm install --omit=dev",
   "buildCommand": "npm --prefix frontend install && npm --prefix frontend run build",
-  "functions": {
-    "index.js": {
-      "includeFiles": "dist/**,backend/**"
-    },
-    "api/index.js": {
-      "includeFiles": "dist/**,backend/**"
-    }
-  },
-  "rewrites": [
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/"
+      "src": "api/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.js"
     }
   ]
 }
