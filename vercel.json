@@ -4,8 +4,15 @@
   "buildCommand": "npm --prefix frontend install && npm --prefix frontend run build",
   "builds": [
     {
-      "src": "server.js",
-      "use": "@vercel/node"
+      "src": "api/index.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "backend/**",
+          "node_modules/semver/**",
+          "node_modules/jsonwebtoken/**"
+        ]
+      }
     }
   ],
   "routes": [
@@ -14,7 +21,7 @@
     },
     {
       "src": "/api/(.*)",
-      "dest": "/server.js"
+      "dest": "/api/index.js"
     },
     {
       "src": "/(.*)",

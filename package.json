@@ -2,7 +2,6 @@
   "name": "ecobot",
   "version": "1.0.0",
   "description": "EcoBot - Sistema de Gestão Sustentável e ESG preparado para deploy",
-  "main": "server.js",
   "scripts": {
     "start": "node backend/src/server.js",
     "dev": "nodemon backend/src/server.js",
@@ -14,6 +13,9 @@
   "engines": {
     "node": "20.x"
   },
+  "overrides": {
+    "semver": "7.6.3"
+  },
   "dependencies": {
     "axios": "^1.16.0",
     "bcryptjs": "^3.0.3",
@@ -23,6 +25,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^7.5.0",
     "recharts": "^3.8.1",
+    "semver": "7.6.3",
     "socket.io": "^4.7.2"
   },
   "devDependencies": {
