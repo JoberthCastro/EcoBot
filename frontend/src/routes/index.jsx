@@ -6,6 +6,7 @@ import Dashboard from '../pages/dashboard';
 import AirQuality from '../pages/airQuality';
 import Chatbot from '../pages/chatbot';
 import History from '../pages/history';
+import EsgMap from '../pages/esgMap';
 import Profile from '../pages/profile';
 import Settings from '../pages/settings';
 import { useApp } from '../context/AppContext';
@@ -28,6 +29,7 @@ function AppRoutes() {
         <Route path="/qualidade-do-ar" element={<ProtectedRoute><AirQuality /></ProtectedRoute>} />
         <Route path="/chatbot" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
         <Route path="/historico" element={<ProtectedRoute><History /></ProtectedRoute>} />
+        <Route path="/mapa-esg" element={<ProtectedRoute><EsgMap /></ProtectedRoute>} />
         <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       </Routes>

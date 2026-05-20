@@ -6,13 +6,31 @@ const {
 } = require('../services/openaq.service');
 const { buildEsgFromAirQuality, buildSustainabilityScore } = require('../utils/esgFromAirQuality');
 
+const supportedCities = require('../data/cities.data');
+
 const defaultMonthOrder = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
-const supportedCities = [
-  { name: 'São Paulo', country: 'BR' },
-  { name: 'Rio de Janeiro', country: 'BR' },
-  { name: 'Belo Horizonte', country: 'BR' },
-  { name: 'Curitiba', country: 'BR' },
-];
+
+function pickMonthData(series, month) {
+  if (!series?.length) {
+    return null;
+  }
+
+  if (month) {
+    return series.find((entry) => entry.month === month) || series[series.length - 1];
+  }
+
+  return series[series.length - 1];
+}
+
+function scoreLevel(score) {
+  if (score >= 80) {
+    return 'good';
+  }
+  if (score >= 60) {
+    return 'moderate';
+  }
+  return 'attention';
+}
 
 function buildSnapshotFromLive(latest, city, country) {
   const esgMetrics = buildEsgFromAirQuality(latest.airQuality || {});
@@ -170,8 +188,44 @@ async function getUnifiedMetrics(req, res) {
   }
 }
 
+async function getUnifiedMap(req, res) {
+  try {
+    const { month = 'Jun' } = req.query;
+
+    const cities = await Promise.all(
+      supportedCities.map(async (cityMeta) => {
+        const { series, source } = await getCitySeries(cityMeta.name);
+        const data = pickMonthData(series, month);
+
+        return {
+          name: cityMeta.name,
+          country: cityMeta.country,
+          lat: cityMeta.lat,
+          lng: cityMeta.lng,
+          mapX: cityMeta.mapX,
+          mapY: cityMeta.mapY,
+          month: data?.month || month,
+          sustainabilityScore: data?.sustainabilityScore ?? null,
+          scoreLevel: scoreLevel(Number(data?.sustainabilityScore ?? 0)),
+          esgMetrics: data?.esgMetrics || {},
+          airQuality: data?.airQuality || {},
+          source: data?.source || source || 'Indisponível'
+        };
+      })
+    );
+
+    res.json({
+      month,
+      cities,
+      totalCities: cities.length
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 async function getAvailableCities(req, res) {
-  res.json(supportedCities);
+  res.json(supportedCities.map(({ name, country, lat, lng }) => ({ name, country, lat, lng })));
 }
 
 async function getAvailableMonths(req, res) {
@@ -196,6 +250,7 @@ async function getAvailableMonths(req, res) {
 module.exports = {
   getUnifiedData,
   getUnifiedMetrics,
+  getUnifiedMap,
   getAvailableCities,
   getAvailableMonths,
 };

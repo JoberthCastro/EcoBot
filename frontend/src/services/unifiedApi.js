@@ -48,10 +48,21 @@ async function getMetricsForCity(city, month) {
   return response.data;
 }
 
+async function getMapOverview(month) {
+  const params = {};
+  if (month) {
+    params.month = month;
+  }
+
+  const response = await apiClient.get('/unified/map', { params });
+  return response.data;
+}
+
 export {
   getCities,
   getMonths,
   resolveMonthForCity,
   getDataForCityAndMonth,
   getMetricsForCity,
+  getMapOverview,
 };
