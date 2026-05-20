@@ -21,4 +21,6 @@ expressApp.use(async (req, res, next) => {
   }
 });
 
-module.exports = expressApp;
+module.exports = async (req, res) => {
+  expressApp(req, res);
+};
