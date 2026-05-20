@@ -2,9 +2,6 @@
   "installCommand": "npm install --omit=dev",
   "buildCommand": "npm --prefix frontend install && npm --prefix frontend run build",
   "functions": {
-    "index.js": {
-      "includeFiles": "dist/**,backend/**"
-    },
     "api/index.js": {
       "includeFiles": "dist/**,backend/**"
     }
