@@ -21,11 +21,14 @@ app.use('/api', (req, res, next) => {
 app.use('/api/users', userRoutes);
 app.use('/api', routes);
 
+const publicPath = path.resolve(__dirname, '..', '..', 'public');
 const distPath = path.resolve(__dirname, '..', '..', 'dist');
-if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
+const staticPath = fs.existsSync(publicPath) ? publicPath : distPath;
+
+if (fs.existsSync(staticPath)) {
+  app.use(express.static(staticPath));
   app.get(/^\/(?!api).*/, (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
+    res.sendFile(path.join(staticPath, 'index.html'));
   });
 }
 
