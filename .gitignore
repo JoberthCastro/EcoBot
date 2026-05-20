@@ -4,3 +4,6 @@ node_modules/
 coverage/
 dist/
 build/
+/index.html
+/assets/
+/logo.png
