@@ -5,7 +5,7 @@ import ESGMetricsChart from '../components/charts/ESGMetricsChart';
 import AirQualityChart from '../components/charts/AirQualityChart';
 import SustainabilityScoreChart from '../components/charts/SustainabilityScoreChart';
 import ComparisonChart from '../components/charts/ComparisonChart';
-import DashboardPitchPanel from '../components/DashboardPitchPanel';
+import DashboardExecutiveSummary from '../components/DashboardExecutiveSummary';
 import { getDataForCityAndMonth, getMetricsForCity } from '../services/unifiedApi';
 import { getSuggestions } from '../services/suggestionsApi';
 import './dashboard.css';
@@ -129,7 +129,7 @@ function Dashboard() {
       <div className="dashboard-container">
         <FilterBar onFilterChange={handleFilterChange} defaultCity={filters.city} defaultMonth={filters.month} />
 
-        <DashboardPitchPanel
+        <DashboardExecutiveSummary
           city={filters.city}
           month={filters.month}
           score={score}

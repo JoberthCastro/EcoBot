@@ -104,41 +104,9 @@ export function buildExecutiveInsights({
       tone: 'neutral',
       icon: '☀️',
       title: 'Oportunidade renovável',
-      text: `Apenas ${esgData?.renewableEnergy}% de energia renovável — quick win para o pitch de descarbonização.`,
+      text: `Apenas ${esgData?.renewableEnergy}% de energia renovável — oportunidade de ganho rápido em descarbonização.`,
     });
   }
 
   return insights.slice(0, 5);
-}
-
-export function buildPitchSummaryText({
-  city,
-  month,
-  score,
-  airQuality,
-  esgData,
-  metricsData,
-  isSimulated,
-}) {
-  const source = isSimulated ? 'Simulado (demo)' : 'OpenAQ API v3';
-  return [
-    `# EcoBot — Resumo ESG`,
-    ``,
-    `**Cidade:** ${city} | **Período:** ${month}`,
-    `**Fonte:** ${source}`,
-    ``,
-    `## Indicadores principais`,
-    `- Score de sustentabilidade: **${score}/100**`,
-    `- AQI: **${airQuality?.aqi ?? '—'}**`,
-    `- CO₂: **${esgData?.co2Emissions} t** (${metricsData?.carbonEmissions?.reduction > 0 ? '▼' : '▲'} ${Math.abs(metricsData?.carbonEmissions?.reduction ?? 0)}%)`,
-    `- Energia: **${esgData?.energyConsumption} kWh** (${metricsData?.energyConsumption?.reduction > 0 ? '▼' : '▲'} ${Math.abs(metricsData?.energyConsumption?.reduction ?? 0)}%)`,
-    `- Energia renovável: **${esgData?.renewableEnergy}%**`,
-    `- Taxa de reciclagem: **${esgData?.recyclingRate}%**`,
-    ``,
-    `## Mensagem para stakeholders`,
-    `O EcoBot unifica qualidade do ar (OpenAQ) e métricas ESG derivadas em um único painel,`,
-    `com histórico mensal, comparativos e assistente para apoiar decisões sustentáveis.`,
-    ``,
-    `Demo: https://ecobotti.vercel.app`,
-  ].join('\n');
 }
