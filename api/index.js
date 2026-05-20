@@ -1,8 +1,8 @@
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
-const expressApp = require('./backend/src/app');
-const { connectDatabase } = require('./backend/src/config/db');
+const expressApp = require('../backend/src/app');
+const { connectDatabase } = require('../backend/src/config/db');
 
 let dbReady = false;
 
@@ -16,7 +16,7 @@ expressApp.use(async (req, res, next) => {
     dbReady = true;
     return next();
   } catch (error) {
-    console.error('[vercel] Falha ao conectar no MongoDB', error);
+    console.error('[api] Falha ao conectar no MongoDB', error);
     return next(error);
   }
 });
