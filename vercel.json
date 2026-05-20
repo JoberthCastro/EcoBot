@@ -1,11 +1,12 @@
 {
   "installCommand": "npm install --omit=dev",
   "buildCommand": "npm --prefix frontend install && npm --prefix frontend run build",
+  "functions": {
+    "index.js": {
+      "includeFiles": "backend/**"
+    }
+  },
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index"
-    },
     {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
