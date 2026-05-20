@@ -1,152 +1,124 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 
-function polarToCartesian(cx, cy, r, angleDeg) {
-  const angleRad = (Math.PI * (angleDeg - 180)) / 180;
+/** Ponto no semicírculo superior: 0% = esquerda, 100% = direita */
+function pointOnArc(cx, cy, radius, percent) {
+  const angle = Math.PI - (percent / 100) * Math.PI;
   return {
-    x: cx + r * Math.cos(angleRad),
-    y: cy + r * Math.sin(angleRad),
+    x: cx + radius * Math.cos(angle),
+    y: cy - radius * Math.sin(angle),
   };
 }
 
-function describeArc(cx, cy, r, startAngle, endAngle) {
-  const start = polarToCartesian(cx, cy, r, endAngle);
-  const end = polarToCartesian(cx, cy, r, startAngle);
-  const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
-  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
+function arcPath(cx, cy, radius, startPercent, endPercent) {
+  const start = pointOnArc(cx, cy, radius, startPercent);
+  const end = pointOnArc(cx, cy, radius, endPercent);
+  const largeArc = endPercent - startPercent > 50 ? 1 : 0;
+  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+}
+
+const ZONES = [
+  { from: 0, to: 20, color: '#ef4444' },
+  { from: 20, to: 40, color: '#f97316' },
+  { from: 40, to: 60, color: '#eab308' },
+  { from: 60, to: 80, color: '#84cc16' },
+  { from: 80, to: 100, color: '#22c55e' },
+];
+
+function scoreColor(value) {
+  if (value >= 80) return '#22c55e';
+  if (value >= 60) return '#84cc16';
+  if (value >= 40) return '#eab308';
+  if (value >= 20) return '#f97316';
+  return '#ef4444';
 }
 
 function SustainabilityScoreChart({ score = 0 }) {
   const { theme } = useApp();
   const isDark = theme === 'dark';
-  const normalizedScore = Math.min(100, Math.max(0, score));
-  const cx = 140;
-  const cy = 115;
-  const radius = 100;
-  const stroke = 18;
+  const value = Math.min(100, Math.max(0, Number(score) || 0));
+  const displayValue = Number.isInteger(value) ? value : value.toFixed(1);
 
-  // Segmentos: vermelho, laranja, amarelo, verde-claro, verde
-  const segments = [
-    { start: 180, end: 216, color: '#ef4444' },
-    { start: 216, end: 252, color: '#f97316' },
-    { start: 252, end: 288, color: '#eab308' },
-    { start: 288, end: 324, color: '#84cc16' },
-    { start: 324, end: 360, color: '#22c55e' },
-  ];
+  const cx = 120;
+  const cy = 108;
+  const radius = 88;
+  const stroke = 16;
+  const needleTip = pointOnArc(cx, cy, radius - 12, value);
 
-  const scoreAngle = 180 + (normalizedScore / 100) * 180;
-
-  const getScoreColor = (v) => {
-    if (v >= 80) return '#22c55e';
-    if (v >= 60) return '#84cc16';
-    if (v >= 40) return '#eab308';
-    if (v >= 20) return '#f97316';
-    return '#ef4444';
-  };
-
-  // Marcadores
   const ticks = [0, 25, 50, 75, 100];
 
   return (
-    <div style={{ width: '100%', maxWidth: 320, margin: '0 auto' }}>
-      <svg viewBox="0 0 280 160" style={{ width: '100%', height: 'auto', display: 'block' }}>
-        {/* Fundo cinza */}
+    <div className="sustainability-gauge">
+      <svg viewBox="0 0 240 130" aria-hidden="true">
+        {/* Trilho de fundo */}
         <path
-          d={describeArc(cx, cy, radius, 180, 360)}
+          d={arcPath(cx, cy, radius, 0, 100)}
           fill="none"
-          stroke={isDark ? '#374151' : '#e5e7eb'}
+          stroke={isDark ? '#374151' : '#e2e8f0'}
           strokeWidth={stroke}
           strokeLinecap="round"
         />
 
-        {/* Segmentos coloridos com gap */}
-        {segments.map((seg, i) => (
+        {/* Faixas de cor (sem gaps grandes) */}
+        {ZONES.map((zone) => (
           <path
-            key={i}
-            d={describeArc(cx, cy, radius, seg.start + 2, seg.end - 2)}
+            key={`${zone.from}-${zone.to}`}
+            d={arcPath(cx, cy, radius, zone.from, zone.to)}
             fill="none"
-            stroke={seg.color}
+            stroke={zone.color}
             strokeWidth={stroke}
             strokeLinecap="butt"
           />
         ))}
 
-        {/* Marcadores de escala */}
-        {ticks.map((t) => {
-          const angle = 180 + (t / 100) * 180;
-          const inner = polarToCartesian(cx, cy, radius - stroke / 2 - 6, angle);
-          const outer = polarToCartesian(cx, cy, radius + stroke / 2 + 4, angle);
+        {/* Marcadores */}
+        {ticks.map((tick) => {
+          const inner = pointOnArc(cx, cy, radius - stroke / 2 - 4, tick);
+          const outer = pointOnArc(cx, cy, radius + stroke / 2 + 2, tick);
+          const label = pointOnArc(cx, cy, radius + 22, tick);
           return (
-            <g key={t}>
+            <g key={tick}>
               <line
                 x1={inner.x}
                 y1={inner.y}
                 x2={outer.x}
                 y2={outer.y}
-                stroke={isDark ? '#6b7280' : '#9ca3af'}
-                strokeWidth={2}
+                stroke={isDark ? '#6b7280' : '#94a3b8'}
+                strokeWidth={1.5}
               />
               <text
-                x={polarToCartesian(cx, cy, radius + 26, angle).x}
-                y={polarToCartesian(cx, cy, radius + 26, angle).y}
+                x={label.x}
+                y={label.y}
                 textAnchor="middle"
-                dominantBaseline="central"
-                fill={isDark ? '#9ca3af' : '#6b7280'}
-                fontSize="12"
+                dominantBaseline="middle"
+                fill={isDark ? '#9ca3af' : '#64748b'}
+                fontSize="11"
                 fontWeight="600"
               >
-                {t}
+                {tick}
               </text>
             </g>
           );
         })}
 
         {/* Agulha */}
-        <g>
-          <circle cx={cx} cy={cy} r={6} fill={isDark ? '#f3f4f6' : '#374151'} />
-          <line
-            x1={cx}
-            y1={cy}
-            x2={polarToCartesian(cx, cy, radius - 10, scoreAngle).x}
-            y2={polarToCartesian(cx, cy, radius - 10, scoreAngle).y}
-            stroke={isDark ? '#f9fafb' : '#111827'}
-            strokeWidth={3}
-            strokeLinecap="round"
-          />
-          <circle
-            cx={polarToCartesian(cx, cy, radius - 10, scoreAngle).x}
-            cy={polarToCartesian(cx, cy, radius - 10, scoreAngle).y}
-            r={4}
-            fill={getScoreColor(normalizedScore)}
-          />
-        </g>
+        <line
+          x1={cx}
+          y1={cy}
+          x2={needleTip.x}
+          y2={needleTip.y}
+          stroke={isDark ? '#f9fafb' : '#1e293b'}
+          strokeWidth={2.5}
+          strokeLinecap="round"
+        />
+        <circle cx={cx} cy={cy} r={5} fill={isDark ? '#e5e7eb' : '#334155'} />
+        <circle cx={needleTip.x} cy={needleTip.y} r={4} fill={scoreColor(value)} />
       </svg>
 
-      {/* Texto central abaixo do SVG */}
-      <div style={{ textAlign: 'center', marginTop: 2 }}>
-        <div
-          style={{
-            fontSize: '40px',
-            fontWeight: 800,
-            color: getScoreColor(normalizedScore),
-            lineHeight: 1,
-          }}
-        >
-          {normalizedScore}
-        </div>
-        <div
-          style={{
-            fontSize: '12px',
-            fontWeight: 500,
-            color: isDark ? '#9ca3af' : '#6b7280',
-            marginTop: 6,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-          }}
-        >
-          Índice ESG Atual
-        </div>
+      <div className="sustainability-gauge__value" style={{ color: scoreColor(value) }}>
+        {displayValue}
       </div>
+      <div className="sustainability-gauge__label">Índice ESG Atual</div>
     </div>
   );
 }

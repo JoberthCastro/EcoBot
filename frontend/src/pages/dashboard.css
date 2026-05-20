@@ -104,6 +104,39 @@
 .score-mini {
   align-items: center;
   text-align: center;
+  overflow: visible;
+}
+
+.sustainability-gauge {
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.sustainability-gauge svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.sustainability-gauge__value {
+  text-align: center;
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1;
+  margin-top: 4px;
+}
+
+.sustainability-gauge__label {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-top: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* ── Dashboard Grid ── */
