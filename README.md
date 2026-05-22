@@ -140,7 +140,7 @@ EcoBot/
 - `GET /api/health` - health check da API
 - `GET /api/metrics` - métricas de sustentabilidade (mock)
 - `GET /api/suggestions` - sugestões de otimização ESG (mock)
-- `POST /api/chat` - chatbot para consultas ESG (mock)
+- `POST /api/chat` - chatbot para consultas ESG (Google Gemini 1.5 Pro)
 - `GET /api/air-quality/location/:location` - busca dados de qualidade do ar e métricas ESG por localização
   - Retorna: qualidade do ar (PM2.5, PM10, NO2, O3, CO, SO2, AQI)
   - Inclui: métricas ESG (CO2, energia, água, resíduos, energia renovável, taxa de reciclagem)

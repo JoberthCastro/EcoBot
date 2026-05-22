@@ -1,14 +1,15 @@
+const asyncHandler = require('../utils/asyncHandler');
 const { processChatMessage } = require('../services/chatbot.service');
 
-function sendChatResponse(req, res) {
-  const { message } = req.body || {};
-  const response = processChatMessage(message);
+const sendChatResponse = asyncHandler(async (req, res) => {
+  const { message, history } = req.body || {};
+  const response = await processChatMessage(message, history);
 
   res.json({
     message,
     response
   });
-}
+});
 
 module.exports = {
   sendChatResponse
