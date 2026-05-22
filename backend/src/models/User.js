@@ -24,6 +24,32 @@ const userSchema = new Schema(
       required: true,
       minlength: 6,
       select: false
+    },
+    role: {
+      type: String,
+      default: 'Usuário'
+    },
+    avatar: {
+      type: String,
+      default: '/logo.png'
+    },
+    joinedDate: {
+      type: String,
+      default: () => new Date().toLocaleDateString('pt-BR')
+    },
+    preferences: {
+      theme: {
+        type: String,
+        default: 'light'
+      },
+      notifications: {
+        type: Boolean,
+        default: true
+      },
+      language: {
+        type: String,
+        default: 'pt-BR'
+      }
     }
   },
   {

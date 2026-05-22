@@ -18,6 +18,10 @@ function errorHandler(err, req, res, next) {
     return res.status(400).json({ message });
   }
 
+  if (err?.name === 'CastError' && err?.kind === 'ObjectId') {
+    return res.status(400).json({ message: 'ID inválido' });
+  }
+
   if (err.name === 'CastError') {
     return res.status(400).json({ message: 'Identificador inválido' });
   }

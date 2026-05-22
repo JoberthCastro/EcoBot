@@ -1,7 +1,7 @@
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
-const app = require('./app');
+const app = require('./createExpressApp');
 const { connectDatabase } = require('./config/db');
 const { port } = require('./config/env');
 
@@ -13,7 +13,11 @@ async function startServer() {
   });
 }
 
-startServer().catch((error) => {
-  console.error('Failed to start EcoBot API', error);
-  process.exit(1);
-});
+if (require.main === module) {
+  startServer().catch((error) => {
+    console.error('Failed to start EcoBot API', error);
+    process.exit(1);
+  });
+}
+
+module.exports = { app, startServer };

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const jwt = require('jsonwebtoken');
 
-const app = require('../../backend/src/app');
+const app = require('../../backend/src/createExpressApp');
 const User = require('../../backend/src/models/User');
 
 let mongoServer;
@@ -15,6 +15,8 @@ const testUser = {
 };
 
 beforeAll(async () => {
+  process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-ecobot';
+  process.env.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
   mongoServer = await MongoMemoryServer.create();
   await mongoose.connect(mongoServer.getUri());
 });

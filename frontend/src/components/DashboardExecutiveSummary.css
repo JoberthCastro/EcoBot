@@ -1,0 +1,213 @@
+.executive-summary {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+.executive-summary-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.executive-summary-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.executive-summary-tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.executive-summary-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.executive-summary-score {
+  text-align: center;
+  min-width: 88px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+}
+
+.executive-summary-score-value {
+  display: block;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.executive-summary-score-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-top: 4px;
+  letter-spacing: 0.3px;
+}
+
+.executive-summary-score--excellent .executive-summary-score-value {
+  color: #15803d;
+}
+
+.executive-summary-score--good .executive-summary-score-value {
+  color: #ca8a04;
+}
+
+.executive-summary-score--attention .executive-summary-score-value {
+  color: #b91c1c;
+}
+
+.executive-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.executive-summary-card {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.executive-summary-card h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.executive-summary-card p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.executive-summary-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.executive-summary-card--success {
+  border-left: 3px solid #22c55e;
+}
+
+.executive-summary-card--warning {
+  border-left: 3px solid #eab308;
+}
+
+.executive-summary-card--danger {
+  border-left: 3px solid #ef4444;
+}
+
+.executive-summary-card--neutral {
+  border-left: 3px solid #94a3b8;
+}
+
+.executive-summary-nav {
+  display: flex;
+  gap: 16px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.executive-summary-nav a {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.executive-summary-nav a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .executive-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .executive-summary-top {
+    flex-direction: column;
+  }
+}
+
+/* ── Tema escuro ── */
+[data-theme="dark"] .executive-summary {
+  background: linear-gradient(135deg, #1e293b 0%, #172033 100%);
+  border-color: #334155;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .executive-summary-eyebrow {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .executive-summary-title {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .executive-summary-score {
+  background: #0f172a;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .executive-summary-score-label {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .executive-summary-card {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .executive-summary-card h3 {
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .executive-summary-card p {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .executive-summary-nav {
+  border-top-color: #334155;
+}
+
+[data-theme="dark"] .executive-summary-nav a {
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .executive-summary-tag {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
